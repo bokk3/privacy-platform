@@ -1,4 +1,4 @@
-# Architecture — Steps 1–4 (Foundation + Auth + Request Engine + Broker Automation)
+# Architecture — Steps 1–5 (Foundation + Auth + Request Engine + Broker Automation + React Dashboard)
 
 ## System overview
 
@@ -199,6 +199,16 @@ Brokers with `WEB_FORM` method use `playwright` directly integrated into the `wo
 Since `EMAIL` brokers dispatch using basic Nodemailer envelopes, the tracking of delivery failures (bounces) and human responses occurs through an unauthenticated webhook ingest at `/api/v1/webhooks/email`.
 It parses typical Mail Provider headers loosely, and correlates responses to whichever `PrivacyRequest` matches the sender `WAITING` for closure.
 
+
+
+## Client SPA architecture (Step 5)
+
+The dashboard is built within the `/client` directory as a lightweight SPA configured using **Vite** and **React 18**:
+- **Styling**: Vanilla-style TailwindCSS leveraging `@layer components` to provide unified visual language (e.g., fluid glassmorphism, contextual spacing, gradients).
+- **Communication Layer**: Uses an Axios singleton built over a reverse abstraction that transparently fetches `POST /api/v1/auth/refresh` on silent 401s, ensuring session stability against strict server lifecycles without hard page reloading or messy hook chaining.
+- **Routing**: `react-router-dom` v6 wraps components with Higher Order Layouts (`AuthLayout` and `AppLayout`) resolving rendering strictly based on JWT payload presences governed by `AuthContext.jsx`.
+- **Pages Added**: Login, Register (w/ MFA UI capabilities), Dashboard Activity Summary, Authentication/Security (Profile), and Privacy Requests (with historical timeline mapping) which hook directly into Step 3 endpoints natively.
+
 ## What's runnable today
 
 - `postgres`, `redis` containers.
@@ -224,6 +234,7 @@ It parses typical Mail Provider headers loosely, and correlates responses to whi
   - `GET  /api/v1/requests/:id/timeline` (Get individual timeline)
   - `POST /api/v1/webhooks/email` (Ingest provider delivery payloads)
 - `worker` container is now actively running against dispatch, checking, and retry Queues in Redis using Playwright and Nodemailer dispatchers.
+- `client` container proxying via `npm run dev:client` successfully boots a modern UI accessible on localhost.
 - Prisma schema is complete and ready for `prisma migrate dev`.
 
 ### Foundation fixes applied
@@ -242,10 +253,8 @@ It parses typical Mail Provider headers loosely, and correlates responses to whi
 
 ## What's intentionally not yet built (upcoming steps)
 
-1. **Step 5** — React dashboard: stats, timeline/graphs, identity
-   management UI, notifications.
-2. **Step 6** — Admin dashboard: user/broker/template/log management,
+1. **Step 6** — Admin dashboard: user/broker/template/log management,
    system health view.
-3. **Step 7** — Public REST API + OpenAPI docs.
-4. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
+2. **Step 7** — Public REST API + OpenAPI docs.
+3. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
    Playwright E2E) + GitHub Actions CI + production deployment guide.

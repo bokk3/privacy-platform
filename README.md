@@ -9,17 +9,16 @@ This is an **original implementation** — architecture, code, copy, and UI
 are all written for this project. It is not affiliated with, and does not
 reuse any code or assets from, any commercial privacy-removal service.
 
-> **Build status: Steps 1–4 of 8 — + Broker Automation.** See
+> **Build status: Steps 1–5 of 8 — + React Dashboard.** See
 > [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the full roadmap.
-> Steps 1–4 ship: monorepo scaffolding, Docker infrastructure, the
+> Steps 1–5 ship: monorepo scaffolding, Docker infrastructure, the
 > complete normalized database schema, the full security middleware stack,
-> authentication service (register, login, email verify,
-> forgot/reset password, MFA, JWT rotation, audit logging), worker workflow engine (BullMQ, Queues, State machine), and complete Broker Automation (Playwright, Nodemailer, Captcha detection, email parsing).
+> authentication service, worker workflow engine, complete Broker Automation, and the modern UI React Dashboard application.
 
 ## Monorepo layout
 
 ```
-/client            React 18 + Vite + Tailwind dashboard        (Step 5+)
+/client            React 19 + Vite + Tailwind dashboard        (Step 5)
 /server            Express API + BullMQ workers + Prisma        (Steps 1–4)
   /prisma          schema.prisma, migrations, seed.js
   /src
@@ -45,12 +44,16 @@ docker-compose.yml Postgres, Redis, server, worker, client, nginx
 
 ```bash
 cp .env.example .env
-# then edit .env: set real JWT secrets, FIELD_ENCRYPTION_KEY, SMTP creds
-# generate secrets quickly with:
-openssl rand -base64 64      # for JWT_ACCESS_SECRET / JWT_REFRESH_SECRET / COOKIE_SECRET
-openssl rand -hex 32         # for FIELD_ENCRYPTION_KEY
 
-docker compose up postgres redis server
+# Generate required secrets:
+openssl rand -base64 64      # JWT_ACCESS_SECRET / JWT_REFRESH_SECRET / COOKIE_SECRET
+openssl rand -hex 32         # FIELD_ENCRYPTION_KEY
+
+# Boot external dependencies
+docker compose up -d postgres redis
+
+# Run monolithic development (Vite Client + Express server + Workers mapped concurrently)
+npm run dev
 ```
 
 Then verify:
@@ -68,23 +71,9 @@ docker compose exec server npm run prisma:migrate
 docker compose exec server npm run prisma:seed
 ```
 
-### Auth endpoints (Steps 2-3)
+### User Experience Endpoints
 
-```bash
-# Register
-curl -X POST http://localhost:4000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"yourpassword"}'
-
-# Login
-curl -X POST http://localhost:4000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"yourpassword"}'
-
-# Get User requests pipeline (requires access token from login response)
-curl http://localhost:4000/api/v1/requests \
-  -H "Authorization: Bearer <accessToken>"
-```
+The modern React Dashboard exposes the core functionality graphically. Upon booting via `npm run dev`, navigate your browser natively or issue manual payload queries:
 
 > `client`, `worker`, and `nginx` services are defined in
 > `docker-compose.yml` for the target architecture but their application
@@ -103,5 +92,5 @@ curl http://localhost:4000/api/v1/requests \
 
 ## Next step
 
-**Step 5 — React dashboard:** Stats, timeline/graphs, identity management UI, notifications UI.
+**Step 6 — Admin dashboard:** user/broker/template/log management, system health view.
 
