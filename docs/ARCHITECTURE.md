@@ -1,4 +1,4 @@
-# Architecture — Step 1 (Foundation)
+# Architecture — Step 1 (Foundation, revised)
 
 ## System overview
 
@@ -103,7 +103,7 @@ a buggy retry job.
 | Injection | Prisma parameterized queries only, zod validation on every input | `middleware/validate.js` |
 | PII at rest | AES-256-GCM field encryption | `lib/encryption.js` |
 | Secrets | `.env`, never committed; `env.js` fails boot if missing | `config/env.js` |
-| Config drift | zod-validated env schema, fail-fast at startup | `config/env.js` |
+| Config drift | zod-validated env schema (incl. Argon2 tuning), fail-fast at startup | `config/env.js` |
 
 Authentication (JWT access/refresh, Argon2 hashing, MFA, session
 management, CSRF token issuance flow) is the subject of **Step 2** and
@@ -118,6 +118,20 @@ builds directly on top of this foundation.
   - `GET /api/v1/`
 - Prisma schema is complete for the domain modeled so far and ready for
   `prisma migrate dev` once Step 2 adds the auth routes that use it.
+
+### Foundation fixes applied
+
+- **Nginx `proxy_pass`** — removed trailing slash so the `/api/` prefix is
+  preserved when forwarded to Express. Added separate `/health/` location
+  that bypasses edge rate-limiting for orchestrator probes.
+- **Docker dev target** — added `RUN npx prisma generate` so the
+  `@prisma/client` generated output exists before the server boots.
+- **`docker-compose.yml`** — removed deprecated `version: "3.9"` key.
+- **`env.js`** — added `ARGON2_MEMORY_COST`, `ARGON2_TIME_COST`, and
+  `ARGON2_PARALLELISM` to the Zod schema so Argon2 config is validated at
+  boot and available via `env.*`.
+- **Graceful shutdown** — changed `redis.disconnect()` to
+  `await redis.quit()` so pending commands are flushed before close.
 
 ## What's intentionally not yet built (upcoming steps)
 
