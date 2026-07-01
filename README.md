@@ -9,11 +9,11 @@ This is an **original implementation** — architecture, code, copy, and UI
 are all written for this project. It is not affiliated with, and does not
 reuse any code or assets from, any commercial privacy-removal service.
 
-> **Build status: Steps 1–5 of 8 — + React Dashboard.** See
+> **Build status: Steps 1–6 of 8 — + Admin System.** See
 > [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the full roadmap.
-> Steps 1–5 ship: monorepo scaffolding, Docker infrastructure, the
+> Steps 1–6 ship: monorepo scaffolding, Docker infrastructure, the
 > complete normalized database schema, the full security middleware stack,
-> authentication service, worker workflow engine, complete Broker Automation, and the modern UI React Dashboard application.
+> authentication service, worker workflow engine, complete Broker Automation, modern UI React Dashboard application, and administrative management UIs.
 
 ## Monorepo layout
 
@@ -77,7 +77,7 @@ The modern React Dashboard exposes the core functionality graphically. Upon boot
 
 > `client`, `worker`, and `nginx` services are defined in
 > `docker-compose.yml` for the target architecture but their application
-> code lands in later steps.
+> functionality can be explored natively using NodeJS runtime without full emulation overhead locally.
 
 ## Design principles carried through every step
 

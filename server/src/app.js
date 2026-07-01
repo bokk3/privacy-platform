@@ -17,6 +17,7 @@ import { healthRouter } from "./routes/health.routes.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { requestRouter } from "./routes/request.routes.js";
 import { webhookRouter } from "./routes/webhook.routes.js";
+import { adminRouter } from "./routes/admin.routes.js";
 
 export function createApp() {
   const app = express();
@@ -64,6 +65,7 @@ export function createApp() {
   apiV1.use("/auth", authRouter);
   apiV1.use("/requests", requestRouter);
   apiV1.use("/webhooks", webhookRouter);
+  apiV1.use("/admin", adminRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

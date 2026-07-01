@@ -10,6 +10,10 @@ import Requests from './pages/Requests.jsx';
 import Profile from './pages/Profile.jsx';
 import AppLayout from './components/AppLayout.jsx';
 import AuthLayout from './components/AuthLayout.jsx';
+import AdminLayout from './components/AdminLayout.jsx';
+import AdminDashboard from './pages/admin/AdminDashboard.jsx';
+import AdminBrokers from './pages/admin/AdminBrokers.jsx';
+import AdminUsers from './pages/admin/AdminUsers.jsx';
 
 // Protect standard routes
 const ProtectedRoute = ({ children }) => {
@@ -17,6 +21,17 @@ const ProtectedRoute = ({ children }) => {
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div></div>;
   if (!user) return <Navigate to="/login" replace />;
+
+  return children;
+};
+
+// Protect Admin routes
+const AdminRoute = ({ children }) => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return <div className="min-h-screen bg-[#090b11] flex items-center justify-center"><div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"></div></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
 
   return children;
 };
@@ -48,6 +63,14 @@ export default function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="requests" element={<Requests />} />
             <Route path="profile" element={<Profile />} />
+          </Route>
+
+          {/* Secure Admin Routes */}
+          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="brokers" element={<AdminBrokers />} />
+            <Route path="users" element={<AdminUsers />} />
           </Route>
         </Routes>
       </AuthProvider>
