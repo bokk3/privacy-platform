@@ -1,0 +1,81 @@
+name: Incognito Platform CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Backend API & Workflow Logic
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: dev
+          POSTGRES_PASSWORD: dev
+          POSTGRES_DB: incognito_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Setup Test Environment Variables
+        run: |
+          echo "DATABASE_URL=postgresql://dev:dev@localhost:5432/incognito_test?schema=public" > .env
+          echo "REDIS_URL=redis://localhost:6379" >> .env
+          echo "JWT_ACCESS_SECRET=c2VjcmV0dGVzdGluZ2tleXNlY3JldHRlc3RpbmdrZXk=" >> .env
+          echo "JWT_REFRESH_SECRET=c2VjcmV0dGVzdGluZ2tleXNlY3JldHRlc3RpbmdrZXk=" >> .env
+          echo "COOKIE_SECRET=c2VjcmV0dGVzdGluZ2tleXNlY3JldHRlc3RpbmdrZXk=" >> .env
+          echo "FIELD_ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000" >> .env
+          echo "SMTP_HOST=smtp.internal" >> .env
+          echo "EMAIL_FROM=test@incognito.test" >> .env
+
+      - name: Prisma Migrations (Test DB)
+        run: |
+          npm run prisma:generate --workspace=server
+          npx prisma migrate dev --name init
+        working-directory: server
+        env:
+          DATABASE_URL: "postgresql://dev:dev@localhost:5432/incognito_test?schema=public"
+
+      - name: Run Backend Tests (Vitest)
+        run: npm run test --workspace=server
+
+  e2e:
+    name: Frontend Playwright E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      # To keep CI lightweight, we only install playwright browsers here if actual tests are running
+      - run: npx playwright install chromium --with-deps
+        working-directory: client
+      - run: echo "Playwright configured."

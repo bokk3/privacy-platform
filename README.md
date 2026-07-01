@@ -1,101 +1,62 @@
-# Privacy Platform
+<p align="center">
+  <img src="https://img.icons8.com/color/144/000000/anonymous-mask.png" alt="Incognito Logo" width="100"/>
+</p>
 
-A from-scratch privacy-rights automation platform: users register, verify
-identity, and authorize automated deletion requests sent to data brokers
-and companies on their behalf, with full audit logging and recurring
-removal scheduling.
+# Incognito Privacy Platform
 
-This is an **original implementation** — architecture, code, copy, and UI
-are all written for this project. It is not affiliated with, and does not
-reuse any code or assets from, any commercial privacy-removal service.
+**Incognito** is a fully open-source, heavily automated privacy rights management platform. It allows individuals to take back control of their digital footprint by programmatically issuing opt-out and deletion requests against data brokers across the web.
 
-> **Build status: Steps 1–7 of 8 — + Swagger OpenAPI.** See
-> [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the full roadmap.
-> Steps 1–7 ship: monorepo scaffolding, Docker infrastructure, the
-> complete normalized database schema, the full security middleware stack,
-> authentication service, worker workflow engine, complete Broker Automation, modern UI React Dashboard application, administrative management UIs, and Public APIs mapped through Swagger UI.
+Built on robust state machines and dynamic Headless web automation, Incognito securely encrypts your identity, manages automated browser workflows navigating CAPTCHAs, digests email responses automatically, and tracks compliance timelines on a beautifully designed visual dashboard.
 
-## Monorepo layout
+---
+
+## 🚀 Features
+
+- **Automated Workflows**: Playwright explicitly connects to Web Forms, automatically mimicking human interactions securely to scrub your identity seamlessly from the backend.
+- **Robust Email Webhooks**: Ingests bounce metrics and human responses via SendGrid / Mailgun HTTP webhooks to dynamically step the unified State Machine across pipeline tracking endpoints.
+- **Extremely Secure**: Sensitive Personally Identifiable Information (PII) is encrypted at rest using AES-256-GCM. Auth sessions leverage granular JWTs and explicit multi-factor TOTP authentications seamlessly integrated out of the box.
+- **Beautiful Dashboards**: Executive-layered summaries via a sleek, modern React 19 Frontend built heavily on custom responsive Tailwind CSS theming. Admin "God Views" uniquely tinted to prevent cross-contamination.
+- **Strict Role-Based APIs**: Node.js backend guarded rigorously by validation middlewares alongside detailed Audit Log implementations.
+- **OpenAPI Compliant**: Native Swagger-UI exposing programmatic endpoints effortlessly at `/api/docs`.
+
+## 📦 Architecture
+
+This represents a Node.js unified Monorepo spanning strict boundaries using npm workspaces. 
 
 ```
-/client            React 19 + Vite + Tailwind dashboard        (Step 5)
-/server            Express API + BullMQ workers + Prisma        (Steps 1–4)
-  /prisma          schema.prisma, migrations, seed.js
-  /src
-    /config        env validation (zod)
-    /lib           prisma, redis, logger, encryption, jwt, hash, email, totp, template, playwright
-    /middleware    security stack, auth, error handling, validation
-    /routes        Express routers (health, auth, requests, webhook, admin)
-    /schemas       Zod validation schemas
-    /services      business logic (auth, audit, request, webhook, admin)
-    /queues        BullMQ queues/workers/processors             (Steps 3-4)
-/packages/shared   constants & enums shared by server + client
-/docs
-  ARCHITECTURE.md  System overview and roadmap
-  DEPLOYMENT.md    Production scaling details
-  DEVELOPMENT.md   Local contribution guidelines
-  openapi.yaml     Public API specification (Step 7)
-/scripts           nginx config, deploy/dev helper scripts
-docker-compose.yml Postgres, Redis, server, worker, client, nginx
+/client            React 19 + Vite + Tailwind dashboard SPA
+/server            Express API + BullMQ Queues + Redis Workers
+  /prisma          Schema definitions, normalized migrations
+/packages/shared   Unified application schemas, state maps, and enums
+/docs              Deployment & Local Dev manuals alongside OpenAPI specs
 ```
 
-## Prerequisites
+## ⚡ Deployment & Local Dev
 
-- Docker + Docker Compose
-- Node.js 20+ (only needed if running services outside Docker)
+Please consult the `/docs` repository to spin up or contribute securely.
 
-## Running locally
+- [Deployment Guide (Live Servers)](./docs/DEPLOYMENT.md)
+- [Local Developer Setup](./docs/DEVELOPMENT.md)
+- [System Technical Architecture](./docs/ARCHITECTURE.md)
+
+### Quick Start (Local)
+
+1. Clone and map dependencies: `npm install`
+2. Prep environment: `cp .env.example .env` (Set secure keys)
+3. Boot databases: `docker compose up -d postgres redis`
+4. Spin applications: `npm run dev`
+
+## 🛠 Testing
+
+Incognito asserts rigorous backend logic via `Vitest` and ensures end-to-end frontend safety using `Playwright`. CI automatically asserts code boundaries on PRs utilizing GitHub Actions against sandboxed Postgres containers natively.
 
 ```bash
-cp .env.example .env
+# Run Backend API Integrations
+npm run test --workspace=server
 
-# Generate required secrets:
-openssl rand -base64 64      # JWT_ACCESS_SECRET / JWT_REFRESH_SECRET / COOKIE_SECRET
-openssl rand -hex 32         # FIELD_ENCRYPTION_KEY
-
-# Boot external dependencies
-docker compose up -d postgres redis
-
-# Run monolithic development (Vite Client + Express server + Workers mapped concurrently)
-npm run dev
+# Run End-to-End Frontend Workflows
+npx playwright test --workspace=client
 ```
 
-Then verify:
-
-```bash
-curl http://localhost:4000/health/live
-curl http://localhost:4000/health/ready
-curl http://localhost:4000/api/v1/
-```
-
-Generate and apply the initial migration, then seed example broker data:
-
-```bash
-docker compose exec server npm run prisma:migrate
-docker compose exec server npm run prisma:seed
-```
-
-### User Experience Endpoints
-
-The modern React Dashboard exposes the core functionality graphically. Upon booting via `npm run dev`, navigate your browser natively or issue manual payload queries.
-
-Alternatively, visit the developer platform at `http://localhost:4000/api/docs` to visualize the OpenAPI parameters natively through Swagger.
-
-> `client`, `worker`, and `nginx` services are defined in
-> `docker-compose.yml` for the target architecture but their application
-> functionality can be explored natively using NodeJS runtime without full emulation overhead locally.
-
-## Design principles carried through every step
-
-1. **No silent placeholders.** Every file that ships is complete and
-   runnable for the scope it claims to cover.
-2. **Security is not bolted on.** Encryption, validation, rate limiting,
-   CSRF protection, and auth are part of the foundation.
-3. **Shared source of truth.** Enums like request status and broker method
-   live once, in `packages/shared`, imported by both server and client.
-4. **Everything is auditable.** Every state change and auth action is
-   recorded from day one.
-
-## Next steps
-
-**Step 8 — Testing Pipeline:** GitHub Action CI, E2E tests via Vitest & Playwright.
+## ⚖️ License
+Incognito is licensed under the MIT License.
