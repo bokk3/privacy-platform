@@ -54,6 +54,123 @@ paths:
       responses:
         '200':
           description: Standard login response mapping JWT payload.
+  /auth/login/mfa:
+    post:
+      summary: Authenticate via MFA
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - challengeToken
+                - totpCode
+              properties:
+                challengeToken:
+                  type: string
+                totpCode:
+                  type: string
+      responses:
+        '200':
+          description: Standard login response generating final JWTs.
+  /auth/me:
+    get:
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: User profile payload.
+  /auth/refresh:
+    post:
+      summary: Refresh JWT session
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: New access and refresh tokens.
+  /auth/logout:
+    post:
+      summary: Revoke session token
+      security:
+        - bearerAuth: []
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Logged out successfully.
+  /admin/health:
+    get:
+      summary: Basic system diagnostics
+      security:
+        - bearerAuth: []
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Payload containing queue metrics and active objects.
+  /admin/users:
+    get:
+      summary: List all users
+      security:
+        - bearerAuth: []
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: Paginated user index.
+  /admin/brokers:
+    get:
+      summary: List all brokers
+      security:
+        - bearerAuth: []
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: All brokers.
+    post:
+      summary: Create data broker record
+      security:
+        - bearerAuth: []
+      tags:
+        - Admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Broker created successfully.
   /requests:
     get:
       summary: List privacy requests

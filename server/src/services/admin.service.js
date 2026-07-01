@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { redis } from "../lib/redis.js";
 import { logger } from "../lib/logger.js";
-import { REQUEST_STATUS } from "@privacy-platform/shared";
+import { REQUEST_STATUS, BROKER_STATUS } from "@privacy-platform/shared";
 
 /**
  * Grabs high level health metrics about the broker/queues system
@@ -15,7 +15,7 @@ export async function getSystemHealth() {
     });
 
     const activeBrokers = await prisma.broker.count({
-        where: { isActive: true },
+        where: { status: BROKER_STATUS.ACTIVE },
     });
 
     // Pull BullMQ Queue sizes natively from Redis or estimate
@@ -45,7 +45,7 @@ export async function getUsersList(take = 50, skip = 0) {
             email: true,
             role: true,
             mfaEnabled: true,
-            emailVerified: true,
+            emailVerifiedAt: true,
             createdAt: true,
             identities: { select: { id: true } },
         },

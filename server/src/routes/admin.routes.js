@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.js";
+import { validate } from "../middleware/validate.js";
+import { createBrokerSchema, updateBrokerSchema, paginationSchema } from "../schemas/admin.schemas.js";
 import * as adminService from "../services/admin.service.js";
 
 export const adminRouter = Router();
@@ -16,10 +18,10 @@ adminRouter.get("/health", async (req, res, next) => {
     }
 });
 
-adminRouter.get("/users", async (req, res, next) => {
+adminRouter.get("/users", validate(paginationSchema, "query"), async (req, res, next) => {
     try {
-        const { take = 50, skip = 0 } = req.query;
-        const users = await adminService.getUsersList(Number(take), Number(skip));
+        const { take, skip } = req.query;
+        const users = await adminService.getUsersList(take, skip);
         res.json({ data: users });
     } catch (err) {
         next(err);
@@ -35,9 +37,8 @@ adminRouter.get("/brokers", async (req, res, next) => {
     }
 });
 
-adminRouter.post("/brokers", async (req, res, next) => {
+adminRouter.post("/brokers", validate(createBrokerSchema), async (req, res, next) => {
     try {
-        // In production, validate this with Zod
         const broker = await adminService.createBroker(req.body);
         res.status(201).json({ data: broker });
     } catch (err) {
@@ -45,7 +46,7 @@ adminRouter.post("/brokers", async (req, res, next) => {
     }
 });
 
-adminRouter.patch("/brokers/:id", async (req, res, next) => {
+adminRouter.patch("/brokers/:id", validate(updateBrokerSchema), async (req, res, next) => {
     try {
         const broker = await adminService.updateBroker(req.params.id, req.body);
         res.json({ data: broker });
@@ -62,3 +63,4 @@ adminRouter.get("/audit-logs", async (req, res, next) => {
         next(err);
     }
 });
+

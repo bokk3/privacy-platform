@@ -34,12 +34,13 @@ export function corsMiddleware() {
 
 /** Global rate limit, backed by Redis so it works correctly across multiple server instances. */
 export function globalRateLimiter() {
+  if (env.NODE_ENV === "test") return (req, res, next) => next();
   return rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     max: env.RATE_LIMIT_MAX,
     standardHeaders: true,
     legacyHeaders: false,
-    store: new RedisStore({
+    store: env.NODE_ENV === "test" ? undefined : new RedisStore({
       sendCommand: (...args) => redis.call(...args),
       prefix: "rl:global:",
     }),
@@ -49,12 +50,13 @@ export function globalRateLimiter() {
 
 /** Stricter limiter for auth endpoints — mitigates credential stuffing / brute force. */
 export function authRateLimiter() {
+  if (env.NODE_ENV === "test") return (req, res, next) => next();
   return rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    store: new RedisStore({
+    store: env.NODE_ENV === "test" ? undefined : new RedisStore({
       sendCommand: (...args) => redis.call(...args),
       prefix: "rl:auth:",
     }),

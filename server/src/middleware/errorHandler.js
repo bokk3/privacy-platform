@@ -43,7 +43,7 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+  if (err.name === "PrismaClientKnownRequestError") {
     if (err.code === "P2002") {
       return res.status(409).json({
         error: "A record with these unique fields already exists.",

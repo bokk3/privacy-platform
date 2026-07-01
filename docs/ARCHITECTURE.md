@@ -241,19 +241,12 @@ The dashboard is built within the `/client` directory as a lightweight SPA confi
 
 ### Foundation fixes applied
 
-- **Nginx `proxy_pass`** — removed trailing slash so the `/api/` prefix is
-  preserved when forwarded to Express. Added separate `/health/` location
-  that bypasses edge rate-limiting for orchestrator probes.
-- **Docker dev target** — added `RUN npx prisma generate` so the
-  `@prisma/client` generated output exists before the server boots.
+- **Nginx `proxy_pass`** — removed trailing slash so the `/api/` prefix is preserved when forwarded to Express. Added separate `/health/` location that bypasses edge rate-limiting for orchestrator probes.
+- **Docker dev target** — added `RUN npx prisma generate` so the `@prisma/client` generated output exists before the server boots.
 - **`docker-compose.yml`** — removed deprecated `version: "3.9"` key.
-- **`env.js`** — added `ARGON2_MEMORY_COST`, `ARGON2_TIME_COST`, and
-  `ARGON2_PARALLELISM` to the Zod schema so Argon2 config is validated at
-  boot and available via `env.*`.
-- **Graceful shutdown** — changed `redis.disconnect()` to
-  `await redis.quit()` so pending commands are flushed before close.
+- **`env.js`** — added `ARGON2_MEMORY_COST`, `ARGON2_TIME_COST`, and `ARGON2_PARALLELISM` to the Zod schema so Argon2 config is validated at boot and available via `env.*`.
+- **Graceful shutdown** — changed `redis.disconnect()` to `await redis.quit()` so pending commands are flushed before close.
 
 ## What's intentionally not yet built (upcoming steps)
 
-1. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
-   Playwright E2E) + GitHub Actions CI + production deployment guide.
+1. **Step 9** — Advanced reporting & dashboards. External compliance API integrations. Production horizontal scaling implementation and load-testing.
