@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { Activity, MailCheck, ShieldAlert, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react';
-import { REQUEST_STATUS } from '@privacy-platform/shared';
+import { REQUEST_STATUS } from '@opaca-engine/shared';
 
 // Helper to translate statuses elegantly
 const StatusBadge = ({ status }) => {

@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../middleware/errorHandler.js";
 import { auditLog } from "./audit.service.js";
-import { AUDIT_ACTION } from "@privacy-platform/shared";
+import { AUDIT_ACTION } from "@opaca-engine/shared";
 
 /**
  * Creates a new personal identity for a user.

@@ -5,7 +5,7 @@ import { z } from "zod";
 // discovering it mid-request (e.g. a silently-undefined JWT secret).
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  APP_NAME: z.string().default("Privacy Platform"),
+  APP_NAME: z.string().default("Opaca Engine"),
   API_PORT: z.coerce.number().int().positive().default(4000),
   APP_URL: z.string().url(),
   API_URL: z.string().url(),
@@ -32,7 +32,7 @@ const envSchema = z.object({
   SMTP_SECURE: z.coerce.boolean().default(false),
   SMTP_USER: z.string().optional().default(""),
   SMTP_PASSWORD: z.string().optional().default(""),
-  SMTP_FROM_NAME: z.string().default("Privacy Platform"),
+  SMTP_FROM_NAME: z.string().default("Opaca Engine"),
   SMTP_FROM_EMAIL: z.string().email(),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),

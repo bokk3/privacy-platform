@@ -78,7 +78,7 @@ export function createApp() {
 
   apiV1.get("/", (req, res) => {
     res.json({
-      name: env.APP_NAME || "Privacy Platform API",
+      name: env.APP_NAME || "Opaca Engine API",
       status: "ok",
       version: "v1",
     });

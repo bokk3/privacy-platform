@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Privacy Platform — Prisma schema
+// Opaca Engine — Prisma schema
 //
 // Design notes:
 // - PII (names, addresses, emails, phones) lives on child tables under

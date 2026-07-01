@@ -10,7 +10,7 @@ import { encryptField, decryptField } from "./encryption.js";
 export function generateTotpSecret(email) {
     const raw = authenticator.generateSecret();
     const encrypted = encryptField(raw);
-    const otpauthUrl = authenticator.keyuri(email, "Privacy Platform", raw);
+    const otpauthUrl = authenticator.keyuri(email, "Opaca Engine", raw);
     return { raw, encrypted, otpauthUrl };
 }
 

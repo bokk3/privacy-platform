@@ -7,7 +7,7 @@ import {
     BROKER_STATUS,
     USER_ROLE,
     QUEUE_NAMES,
-} from "@privacy-platform/shared";
+} from "@opaca-engine/shared";
 
 describe("shared constants", () => {
     describe("REQUEST_STATUS", () => {

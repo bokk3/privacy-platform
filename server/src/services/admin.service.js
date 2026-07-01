@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { redis } from "../lib/redis.js";
 import { logger } from "../lib/logger.js";
-import { REQUEST_STATUS, BROKER_STATUS } from "@privacy-platform/shared";
+import { REQUEST_STATUS, BROKER_STATUS } from "@opaca-engine/shared";
 
 /**
  * Grabs high level health metrics about the broker/queues system

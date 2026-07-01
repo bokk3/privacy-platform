@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { QUEUE_NAMES } from "@privacy-platform/shared";
+import { QUEUE_NAMES } from "@opaca-engine/shared";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
 import { createBullMQConnection } from "../lib/redis.js";

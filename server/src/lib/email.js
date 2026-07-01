@@ -45,7 +45,7 @@ export async function sendVerificationEmail(email, token, name) {
     const url = `${env.APP_URL}/verify-email?token=${token}`;
     return sendEmail({
         to: email,
-        subject: "Verify your email — Privacy Platform",
+        subject: "Verify your email — Opaca Engine",
         html: `
       <h2>Welcome${name ? `, ${name}` : ""}!</h2>
       <p>Please verify your email address by clicking the link below:</p>
@@ -61,7 +61,7 @@ export async function sendPasswordResetEmail(email, token) {
     const url = `${env.APP_URL}/reset-password?token=${token}`;
     return sendEmail({
         to: email,
-        subject: "Password reset — Privacy Platform",
+        subject: "Password reset — Opaca Engine",
         html: `
       <h2>Password Reset</h2>
       <p>You requested a password reset. Click below to set a new password:</p>

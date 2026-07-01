@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { FileText, ChevronRight, Activity, CalendarDays, Loader2 } from 'lucide-react';
-import { REQUEST_STATUS } from '@privacy-platform/shared';
+import { REQUEST_STATUS } from '@opaca-engine/shared';
 
 export default function Requests() {
     const [requests, setRequests] = useState([]);

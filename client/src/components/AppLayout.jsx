@@ -73,7 +73,7 @@ export default function AppLayout() {
             <main className="flex-1 flex flex-col h-screen overflow-hidden">
                 {/* Top Header */}
                 <header className="h-16 border-b border-slate-800 bg-surface/50 backdrop-blur flex justify-between items-center px-8 z-10 relative">
-                    <h1 className="text-lg font-semibold lg:hidden">Incognito</h1>
+                    <h1 className="text-lg font-semibold lg:hidden">Opaca Engine</h1>
                     <div className="ml-auto flex items-center gap-4">
                         <button className="p-2 rounded-full hover:bg-surface text-slate-400 hover:text-slate-200 transition-colors">
                             <Bell className="w-5 h-5" />

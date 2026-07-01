@@ -4,7 +4,7 @@ import { renderTemplate, buildRequestContext } from "../../lib/template.js";
 import { sendEmail } from "../../lib/email.js";
 import { launchBrowser, detectCaptcha, captureScreenshot } from "../../lib/playwright.js";
 import { transitionRequestStatus } from "../../services/request.service.js";
-import { REQUEST_STATUS } from "@privacy-platform/shared";
+import { REQUEST_STATUS } from "@opaca-engine/shared";
 import { scheduleCheckResponse } from "../index.js";
 
 /**

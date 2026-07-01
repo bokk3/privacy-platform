@@ -5,7 +5,7 @@ import {
     REQUEST_STATUS,
     canTransition,
     AUDIT_ACTION,
-} from "@privacy-platform/shared";
+} from "@opaca-engine/shared";
 import { enqueueDispatch } from "../queues/index.js";
 import { logger } from "../lib/logger.js";
 

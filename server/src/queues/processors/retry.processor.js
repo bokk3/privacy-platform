@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
 import { logger } from "../../lib/logger.js";
 import { transitionRequestStatus } from "../../services/request.service.js";
-import { REQUEST_STATUS } from "@privacy-platform/shared";
+import { REQUEST_STATUS } from "@opaca-engine/shared";
 import { enqueueDispatch } from "../index.js";
 
 /**

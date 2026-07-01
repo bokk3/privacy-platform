@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BROKER_METHOD, BROKER_STATUS } from "@privacy-platform/shared";
+import { BROKER_METHOD, BROKER_STATUS } from "@opaca-engine/shared";
 
 /**
  * Schema for a single form field mapping step.

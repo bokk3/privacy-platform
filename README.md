@@ -51,7 +51,7 @@ docker-compose up --build
 
 **4. Accessing the Platform**
 - **Public React UI:** [http://localhost:5173/login](http://localhost:5173/login)
-- **Admin Dashboard:** Access via the seeded root account `admin@incognito.local` / `Admin123!` at [http://localhost:5173/admin](http://localhost:5173/admin)
+- **Admin Dashboard:** Access via the seeded root account `admin@opaca.local` / `Admin123!` at [http://localhost:5173/admin](http://localhost:5173/admin)
 - **API Swagger Docs:** [http://localhost:4000/api/docs](http://localhost:4000/api/docs)
 
 ---

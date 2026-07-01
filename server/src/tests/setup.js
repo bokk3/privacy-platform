@@ -8,7 +8,7 @@
 
 // Override env BEFORE any application imports load config/env.js
 process.env.NODE_ENV = "test";
-process.env.APP_NAME = "Privacy Platform (Test)";
+process.env.APP_NAME = "Opaca Engine (Test)";
 process.env.API_PORT = "4000"; // Positive port required by Zod config
 process.env.APP_URL = "http://localhost:5173";
 process.env.API_URL = "http://localhost:4000";

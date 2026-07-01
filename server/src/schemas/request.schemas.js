@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BROKER_METHOD } from "@privacy-platform/shared";
+import { BROKER_METHOD } from "@opaca-engine/shared";
 
 export const createRequestSchema = z.object({
     identityId: z.string().uuid("Invalid Identity ID"),

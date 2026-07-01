@@ -96,7 +96,7 @@ export default function Identities() {
                         <UserCircle className="text-brand-500" /> Digital Identities
                     </h2>
                     <p className="mt-2 text-slate-400">
-                        Manage the personal data vectors you want Incognito to scrub from underground data brokers.
+                        Manage the personal data vectors you want Opaca Engine to scrub from underground data brokers.
                     </p>
                 </div>
                 {!isCreating && (

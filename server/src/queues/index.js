@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import { QUEUE_NAMES } from "@privacy-platform/shared";
+import { QUEUE_NAMES } from "@opaca-engine/shared";
 import { createBullMQConnection } from "../lib/redis.js";
 
 // Connections aren't safely shareable across multiple queue/worker instances
