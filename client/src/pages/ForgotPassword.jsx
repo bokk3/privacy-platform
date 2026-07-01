@@ -76,7 +76,7 @@ export default function ForgotPassword() {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="block w-full pl-10 pr-3 py-2.5 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-colors sm:text-sm"
-                                    placeholder="admin@incognito.local"
+                                    placeholder="admin@opaca.local"
                                 />
                             </div>
                         </div>

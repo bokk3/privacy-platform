@@ -1,5 +1,9 @@
 # Opaca Engine
 
+<p align="center">
+  <img src="./client/public/logo.png" width="128" alt="Opaca Engine Logo" />
+</p>
+
 Opaca Engine is an open-source, production-ready clone of Incogni / DeleteMe. It automates the extraction and deletion of Personal Identifiable Information (PII) from the internet's largest and most opaque data brokers.
 
 ## 🚀 Features

@@ -12,7 +12,7 @@ process.env.APP_NAME = "Privacy Platform (Test)";
 process.env.API_PORT = "4000"; // Positive port required by Zod config
 process.env.APP_URL = "http://localhost:5173";
 process.env.API_URL = "http://localhost:4000";
-process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://dev:dev@localhost:5432/incognito_test?schema=public";
+process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://dev:dev@localhost:5432/opaca_test?schema=public";
 process.env.REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 process.env.JWT_ACCESS_SECRET = "test_access_secret_must_be_at_least_32_chars";
 process.env.JWT_REFRESH_SECRET = "test_refresh_secret_must_be_at_least_32_chars";
@@ -27,7 +27,7 @@ process.env.SMTP_HOST = "smtp.test.internal";
 process.env.SMTP_PORT = "587";
 process.env.SMTP_SECURE = "false";
 process.env.SMTP_FROM_NAME = "Test Platform";
-process.env.SMTP_FROM_EMAIL = "test@incognito.test";
+process.env.SMTP_FROM_EMAIL = "test@opaca.local";
 process.env.RATE_LIMIT_WINDOW_MS = "60000";
 process.env.RATE_LIMIT_MAX = "1000"; // Generous for tests
 process.env.CORS_ORIGIN = "http://localhost:5173";

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: Incognito Privacy Platform API
-  description: Public REST API for interacting with the Incognito Privacy request engine.
+  title: Opaca Engine API
+  description: Public REST API for interacting with the Opaca Engine request pipeline.
   version: 1.0.0
 servers:
   - url: http://localhost:4000/api/v1

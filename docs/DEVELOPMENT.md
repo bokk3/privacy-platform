@@ -1,6 +1,6 @@
 # Development Workflow Guide
 
-Incognito Privacy is a cohesive monorepo leveraging automated pipelines, schema configurations, and UI tools. This guide accelerates the onboarding of contributors modifying logic correctly.
+Opaca Engine is a cohesive monorepo leveraging automated pipelines, schema configurations, and UI tools. This guide accelerates the onboarding of contributors modifying logic correctly.
 
 ## 1. System Requirements
 

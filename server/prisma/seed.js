@@ -86,7 +86,7 @@ async function main() {
   console.log("Seeding database (development fixtures)...");
 
   // SEED ROOT ADMIN
-  const adminEmail = "admin@incognito.local";
+  const adminEmail = "admin@opaca.local";
   const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
 
   if (!existingAdmin) {

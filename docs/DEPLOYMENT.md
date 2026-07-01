@@ -1,6 +1,6 @@
 # Platform Deployment Guide
 
-Incognito Privacy Platform is designed to scale horizontally across commodity VPS hardware using standard Docker conventions. It splits UI traffic, heavy Playwright automations, and background HTTP APIs into strictly isolated containers.
+Opaca Engine is designed to scale horizontally across commodity VPS hardware using standard Docker conventions. It splits UI traffic, heavy Playwright automations, and background HTTP APIs into strictly isolated containers.
 
 ## 1. Zero-Downtime Infrastructure Dependencies
 
@@ -16,7 +16,7 @@ Create a strict `.env` file at the root of the server repository. These variable
 
 ```bash
 # PostgreSQL Connection (Prisma)
-DATABASE_URL="postgresql://user:pass@postgres:5432/incognito?schema=public"
+DATABASE_URL="postgresql://user:pass@postgres:5432/opaca?schema=public"
 
 # Redis Connectivity (BullMQ / Auth)
 REDIS_URL="redis://redis:6379"
