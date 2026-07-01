@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { logger } from "../../lib/logger.js";
 import { renderTemplate, buildRequestContext } from "../../lib/template.js";
 import { sendEmail } from "../../lib/email.js";
+import { launchBrowser, detectCaptcha, captureScreenshot } from "../../lib/playwright.js";
 import { transitionRequestStatus } from "../../services/request.service.js";
 import { REQUEST_STATUS } from "@privacy-platform/shared";
 import { scheduleCheckResponse } from "../index.js";
@@ -44,8 +45,7 @@ export async function dispatchProcessor(job) {
         if (request.method === "EMAIL") {
             await processEmailDispatch(request);
         } else if (request.method === "WEB_FORM") {
-            logger.error("Web form automation not yet implemented");
-            throw new Error("Web form automation logic to be implemented in Step 4");
+            await processWebFormDispatch(request);
         } else {
             throw new Error(`Unsupported broker method: ${request.method}`);
         }
@@ -127,5 +127,77 @@ async function processEmailDispatch(request) {
 
     if (!success) {
         throw new Error("SMTP transmission failed");
+    }
+}
+
+/**
+ * Automates submitting privacy web forms via Playwright.
+ * A proof-of-concept interacting with standard HTML structures.
+ */
+async function processWebFormDispatch(request) {
+    if (!request.broker.optOutUrl && !request.broker.privacyUrl) {
+        throw new Error("Broker method is WEB_FORM but no optOutUrl or privacyUrl is defined");
+    }
+
+    const targetUrl = request.broker.optOutUrl || request.broker.privacyUrl;
+    const browser = await launchBrowser();
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    let screenshotUrl = null;
+
+    try {
+        // 1. Navigate to target
+        await page.goto(targetUrl, { waitUntil: "networkidle", timeout: 30000 });
+
+        // 2. Scan for immediate Captchas blocking access
+        if (await detectCaptcha(page)) {
+            throw new Error("CAPTCHA_CHALLENGE_BLOCKING");
+        }
+
+        // 3. Fill form logic (heuristic examples based on common DOM identifiers)
+        const firstName = request.identity.firstName;
+        const lastName = request.identity.lastName;
+        const email = request.user.email; // Using default account email as proxy
+
+        // Fill known generic attributes (in reality, API configs might define mapping locators)
+        const hasFirstNameInput = await page.$("input[name*='first']");
+        if (hasFirstNameInput) await page.fill("input[name*='first']", firstName);
+
+        const hasLastNameInput = await page.$("input[name*='last']");
+        if (hasLastNameInput) await page.fill("input[name*='last']", lastName);
+
+        const hasEmailInput = await page.$("input[type='email'], input[name*='email']");
+        if (hasEmailInput) await page.fill("input[type='email'], input[name*='email']", email);
+
+        // 4. Try submitting
+        const submitButton = await page.$("button[type='submit'], input[type='submit']");
+        if (submitButton) {
+            await Promise.all([
+                page.waitForNavigation({ waitUntil: "networkidle", timeout: 15000 }).catch(() => null),
+                submitButton.click(),
+            ]);
+        } else {
+            throw new Error("COULD_NOT_LOCATE_SUBMIT_BUTTON");
+        }
+
+        // 5. Post-submit Captcha check
+        if (await detectCaptcha(page)) {
+            throw new Error("CAPTCHA_POST_SUBMIT");
+        }
+
+    } catch (err) {
+        // Capture debug screenshot before closing
+        screenshotUrl = await captureScreenshot(page, request.id);
+
+        // Attach screenshot url to the request row
+        await prisma.privacyRequest.update({
+            where: { id: request.id },
+            data: { screenshotUrl },
+        });
+
+        throw err; // Bubble the parsed/custom error up for the outer catch block
+    } finally {
+        await browser.close();
     }
 }

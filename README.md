@@ -9,27 +9,27 @@ This is an **original implementation** — architecture, code, copy, and UI
 are all written for this project. It is not affiliated with, and does not
 reuse any code or assets from, any commercial privacy-removal service.
 
-> **Build status: Steps 1–3 of 8 — Foundation + Auth + Workflow Engine.** See
+> **Build status: Steps 1–4 of 8 — + Broker Automation.** See
 > [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the full roadmap.
-> Steps 1–3 ship: monorepo scaffolding, Docker infrastructure, the
+> Steps 1–4 ship: monorepo scaffolding, Docker infrastructure, the
 > complete normalized database schema, the full security middleware stack,
 > authentication service (register, login, email verify,
-> forgot/reset password, MFA, JWT rotation, audit logging), and worker workflow engine (BullMQ, Queues, State machine).
+> forgot/reset password, MFA, JWT rotation, audit logging), worker workflow engine (BullMQ, Queues, State machine), and complete Broker Automation (Playwright, Nodemailer, Captcha detection, email parsing).
 
 ## Monorepo layout
 
 ```
 /client            React 18 + Vite + Tailwind dashboard        (Step 5+)
-/server            Express API + BullMQ workers + Prisma        (Steps 1–3)
+/server            Express API + BullMQ workers + Prisma        (Steps 1–4)
   /prisma          schema.prisma, migrations, seed.js
   /src
     /config        env validation (zod)
-    /lib           prisma, redis, logger, encryption, jwt, hash, email, totp, template
+    /lib           prisma, redis, logger, encryption, jwt, hash, email, totp, template, playwright
     /middleware    security stack, auth, error handling, validation
-    /routes        Express routers (health, auth, requests)
+    /routes        Express routers (health, auth, requests, webhook)
     /schemas       Zod validation schemas
-    /services      business logic (auth, audit, request)
-    /queues        BullMQ queues/workers/processors             (Step 3)
+    /services      business logic (auth, audit, request, webhook)
+    /queues        BullMQ queues/workers/processors             (Steps 3-4)
 /packages/shared   constants & enums shared by server + client
 /docs              architecture, ER diagrams, deployment guide
 /scripts           nginx config, deploy/dev helper scripts
@@ -103,5 +103,5 @@ curl http://localhost:4000/api/v1/requests \
 
 ## Next step
 
-**Step 4 — Broker automation:** Playwright web-form submission, email sending via Nodemailer, bounce/reply detection, CAPTCHA detection + screenshot capture on failure.
+**Step 5 — React dashboard:** Stats, timeline/graphs, identity management UI, notifications UI.
 

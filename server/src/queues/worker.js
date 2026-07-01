@@ -4,6 +4,7 @@ import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
 import { createBullMQConnection } from "../lib/redis.js";
 import { prisma, disconnectPrisma } from "../lib/prisma.js";
+import { initPlaywright } from "../lib/playwright.js";
 import { dispatchProcessor } from "./processors/dispatch.processor.js";
 import { checkResponseProcessor } from "./processors/checkResponse.processor.js";
 import { retryProcessor } from "./processors/retry.processor.js";
@@ -15,6 +16,9 @@ async function start() {
 
     // Validate DB connection before accepting jobs
     await prisma.$queryRaw`SELECT 1`;
+
+    // Init Playwright Dependencies
+    await initPlaywright();
 
     // 1. Dispatch Request Worker
     const dispatchWorker = new Worker(

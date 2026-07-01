@@ -1,4 +1,4 @@
-# Architecture — Steps 1–3 (Foundation + Auth + Request Engine)
+# Architecture — Steps 1–4 (Foundation + Auth + Request Engine + Broker Automation)
 
 ## System overview
 
@@ -187,6 +187,18 @@ server/src/
   routes/request.routes.js   Private API logic endpoints mapped to /api/v1/requests
 ```
 
+## Broker Automation architecture (Step 4)
+
+### Web Form Automation
+Brokers with `WEB_FORM` method use `playwright` directly integrated into the `worker` process. 
+- Browsers run headlessly with restrictive sandbox configurations (`--disable-setuid-sandbox`, `--disable-dev-shm-usage`).
+- **CAPTCHAs**: If a Turnstile, reCAPTCHA, or hCaptcha iframe blocks submission natively, the automated engine intentionally fails loudly and requests manual intervention locally.
+- **Auditing Failures**: Any dispatch-time Playwright failure forces a persistent `.png` screenshot mapping URL stored securely onto the `PrivacyRequest` instance. 
+
+### Bounce/Reply Webhooks
+Since `EMAIL` brokers dispatch using basic Nodemailer envelopes, the tracking of delivery failures (bounces) and human responses occurs through an unauthenticated webhook ingest at `/api/v1/webhooks/email`.
+It parses typical Mail Provider headers loosely, and correlates responses to whichever `PrivacyRequest` matches the sender `WAITING` for closure.
+
 ## What's runnable today
 
 - `postgres`, `redis` containers.
@@ -210,7 +222,8 @@ server/src/
   - `POST /api/v1/requests` (Create new request)
   - `GET  /api/v1/requests/` (Get all user requests)
   - `GET  /api/v1/requests/:id/timeline` (Get individual timeline)
-- `worker` container is now actively running against dispatch, checking, and retry Queues in Redis.
+  - `POST /api/v1/webhooks/email` (Ingest provider delivery payloads)
+- `worker` container is now actively running against dispatch, checking, and retry Queues in Redis using Playwright and Nodemailer dispatchers.
 - Prisma schema is complete and ready for `prisma migrate dev`.
 
 ### Foundation fixes applied
@@ -229,13 +242,10 @@ server/src/
 
 ## What's intentionally not yet built (upcoming steps)
 
-1. **Step 4** — Broker automation: Playwright web-form submission, email
-   sending via Nodemailer, bounce/reply detection, CAPTCHA detection +
-   screenshot capture on failure.
-2. **Step 5** — React dashboard: stats, timeline/graphs, identity
+1. **Step 5** — React dashboard: stats, timeline/graphs, identity
    management UI, notifications.
-3. **Step 6** — Admin dashboard: user/broker/template/log management,
+2. **Step 6** — Admin dashboard: user/broker/template/log management,
    system health view.
-4. **Step 7** — Public REST API + OpenAPI docs.
-5. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
+3. **Step 7** — Public REST API + OpenAPI docs.
+4. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
    Playwright E2E) + GitHub Actions CI + production deployment guide.
