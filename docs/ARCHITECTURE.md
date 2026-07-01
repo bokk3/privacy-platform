@@ -1,4 +1,4 @@
-# Architecture — Steps 1–2 (Foundation + Auth)
+# Architecture — Steps 1–3 (Foundation + Auth + Request Engine)
 
 ## System overview
 
@@ -155,6 +155,38 @@ server/src/
   routes/auth.routes.js    18 Express route handlers mounted at /api/v1/auth
 ```
 
+## Request Workflow architecture (Step 3)
+
+The Request workflow leverages a state machine enforced symmetrically in the web server process and the worker process to avoid illegal state transitions. 
+
+### Message Queues (`BullMQ`)
+Tasks associated with requests are pushed off the Express thread into asynchronous background jobs targeting three queues:
+- **`dispatch-request`**: Generates customized payloads based on identity details and issues communication with the target broker. Rate limited by `BROKER_JOB_CONCURRENCY`.
+- **`check-response`**: Simple SLA verification jobs delayed by the target broker's configured `expectedResponseDays`. If target hasn't transitioned, escalates.
+- **`retry-request`**: Retries failed attempts until `maxRetries`.
+
+### Event Log `RequestEvent`
+Every transition automatically documents its prior state, reasoning, and context. These are isolated from standard application logs or audit logs to cleanly serve user-facing timeline UI components.
+
+### Request files
+
+```
+server/src/
+  lib/template.js     Handlebars renderer using `strict` mode
+  services/
+    request.service.js  State machine manager and request creation utility
+  queues/
+    index.js            Queue definitions
+    worker.js           BullMQ worker daemon wrapper logic
+    processors/
+        dispatch.processor.js   Email and API request implementation
+        checkResponse.processor.js SLA wait verification
+        retry.processor.js      Loop control for retries
+  middleware/auth.js   requireAuth, requireVerifiedEmail, requireRole
+  schemas/request.schemas.js Validation
+  routes/request.routes.js   Private API logic endpoints mapped to /api/v1/requests
+```
+
 ## What's runnable today
 
 - `postgres`, `redis` containers.
@@ -175,7 +207,10 @@ server/src/
   - `POST /api/v1/auth/mfa/setup`
   - `POST /api/v1/auth/mfa/confirm`
   - `POST /api/v1/auth/mfa/disable`
-  - `GET  /api/v1/auth/me`
+  - `POST /api/v1/requests` (Create new request)
+  - `GET  /api/v1/requests/` (Get all user requests)
+  - `GET  /api/v1/requests/:id/timeline` (Get individual timeline)
+- `worker` container is now actively running against dispatch, checking, and retry Queues in Redis.
 - Prisma schema is complete and ready for `prisma migrate dev`.
 
 ### Foundation fixes applied
@@ -194,15 +229,13 @@ server/src/
 
 ## What's intentionally not yet built (upcoming steps)
 
-1. **Step 3** — Request & workflow engine: BullMQ queues, state-machine
-   enforcement, Handlebars template rendering, retry/escalation logic.
-2. **Step 4** — Broker automation: Playwright web-form submission, email
+1. **Step 4** — Broker automation: Playwright web-form submission, email
    sending via Nodemailer, bounce/reply detection, CAPTCHA detection +
    screenshot capture on failure.
-3. **Step 5** — React dashboard: stats, timeline/graphs, identity
+2. **Step 5** — React dashboard: stats, timeline/graphs, identity
    management UI, notifications.
-4. **Step 6** — Admin dashboard: user/broker/template/log management,
+3. **Step 6** — Admin dashboard: user/broker/template/log management,
    system health view.
-5. **Step 7** — Public REST API + OpenAPI docs.
-6. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
+4. **Step 7** — Public REST API + OpenAPI docs.
+5. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
    Playwright E2E) + GitHub Actions CI + production deployment guide.
