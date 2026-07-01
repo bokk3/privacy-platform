@@ -9,6 +9,7 @@
 // later step) or a vetted, sourced data import, never invented data.
 
 import { PrismaClient } from "@prisma/client";
+import { hashPassword } from "../src/lib/hash.js";
 
 const prisma = new PrismaClient();
 
@@ -83,6 +84,25 @@ const EXAMPLE_BROKERS = [
 
 async function main() {
   console.log("Seeding database (development fixtures)...");
+
+  // SEED ROOT ADMIN
+  const adminEmail = "admin@incognito.local";
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+
+  if (!existingAdmin) {
+    const passwordHash = await hashPassword("Admin123!");
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        passwordHash,
+        role: "ADMIN",
+        emailVerifiedAt: new Date(),
+      }
+    });
+    console.log(`  Admin ready: ${adminEmail} / Admin123!`);
+  } else {
+    console.log(`  Admin already exists: ${adminEmail}`);
+  }
 
   const template = await prisma.requestTemplate.upsert({
     where: { id: "seed-default-template" },

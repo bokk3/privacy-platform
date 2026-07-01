@@ -8,6 +8,8 @@ import { initPlaywright } from "../lib/playwright.js";
 import { dispatchProcessor } from "./processors/dispatch.processor.js";
 import { checkResponseProcessor } from "./processors/checkResponse.processor.js";
 import { retryProcessor } from "./processors/retry.processor.js";
+import { cronProcessor } from "./processors/cron.processor.js";
+import { Queue } from "bullmq";
 
 const workers = [];
 
@@ -46,6 +48,21 @@ async function start() {
         { connection: createBullMQConnection() }
     );
     workers.push(retryWorker);
+
+    // 4. Cron Worker (Recurring Schedules)
+    // Runs on a dedicated repeatable queue.
+    const cronWorker = new Worker(
+        QUEUE_NAMES.RECURRING_SCAN,
+        cronProcessor,
+        { connection: createBullMQConnection() }
+    );
+    workers.push(cronWorker);
+
+    // Bootstrap the repeatable job pattern on boot if it doesn't already exist
+    const cronQueue = new Queue(QUEUE_NAMES.RECURRING_SCAN, { connection: createBullMQConnection() });
+    await cronQueue.add("daily-sweep", {}, {
+        repeat: { pattern: "0 2 * * *" } // Run at 2:00 AM every day
+    });
 
     // Default error handlers for workers
     for (const worker of workers) {
