@@ -9,6 +9,8 @@ import Register from './pages/Register.jsx';
 import Requests from './pages/Requests.jsx';
 import Profile from './pages/Profile.jsx';
 import Billing from './pages/Billing.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import AppLayout from './components/AppLayout.jsx';
 import AuthLayout from './components/AuthLayout.jsx';
 import AdminLayout from './components/AdminLayout.jsx';
@@ -56,6 +58,8 @@ export default function App() {
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
           </Route>
 
           {/* Secure Application Routes */}

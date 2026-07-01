@@ -47,12 +47,21 @@ export async function cronProcessor(job) {
 
             // Dispatch a privacy request for each broker on behalf of the user
             for (const broker of brokers) {
-                await createRequest({
-                    userId: schedule.userId,
-                    identityId: schedule.identityId,
-                    brokerId: broker.id,
-                    ip: "127.0.0.1", // Admin/System execution IP
-                });
+                try {
+                    await createRequest({
+                        userId: schedule.userId,
+                        identityId: schedule.identityId,
+                        brokerId: broker.id,
+                        ip: "127.0.0.1", // Admin/System execution IP
+                    });
+                } catch (requestErr) {
+                    // Suppress unique request collisions (expected) so the sweep doesn't abort
+                    if (requestErr.code === "REQUEST_ALREADY_EXISTS") {
+                        logger.debug({ brokerId: broker.id }, "Skipping request creation: active request already exists for this broker.");
+                    } else {
+                        logger.error({ err: requestErr, brokerId: broker.id }, "Unexpected error creating scheduled broker request.");
+                    }
+                }
             }
 
             // Immediately shift schedule forward by intervalDays
