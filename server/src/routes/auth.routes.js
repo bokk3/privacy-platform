@@ -203,3 +203,25 @@ authRouter.get("/me", requireAuth, async (req, res, next) => {
         next(err);
     }
 });
+
+// ---------------------------------------------------------------------------
+// Compliance & Right-to-Access
+// ---------------------------------------------------------------------------
+
+authRouter.get("/export", requireAuth, async (req, res, next) => {
+    try {
+        const data = await authService.exportData(req.user.sub);
+        res.json(data);
+    } catch (err) {
+        next(err);
+    }
+});
+
+authRouter.delete("/account", requireAuth, async (req, res, next) => {
+    try {
+        const result = await authService.deleteAccount(req.user.sub);
+        res.json(result);
+    } catch (err) {
+        next(err);
+    }
+});

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { api } from '../lib/api.js';
-import { Shield, KeyRound, Loader2, AlertCircle, Copy, Check } from 'lucide-react';
+import { Shield, KeyRound, Loader2, AlertCircle, Copy, Check, Download, Trash2, LogOut } from 'lucide-react';
 
 export default function Profile() {
     const { user } = useAuth();
@@ -10,6 +10,9 @@ export default function Profile() {
     const [setupData, setSetupData] = useState(null);
     const [verificationCode, setVerificationCode] = useState('');
     const [copied, setCopied] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     const startMfaSetup = async () => {
         setLoading(true);
@@ -45,6 +48,36 @@ export default function Profile() {
             navigator.clipboard.writeText(setupData.secret);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            const res = await api.get('/auth/export');
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.data, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "privacy_export.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        } catch (err) {
+            alert('Failed to export data');
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setDeleting(true);
+        try {
+            await api.delete('/auth/account');
+            // Force logout
+            window.dispatchEvent(new Event('auth:unauthorized'));
+        } catch (err) {
+            alert('Failed to delete account');
+            setDeleting(false);
         }
     };
 
@@ -120,6 +153,55 @@ export default function Profile() {
                         </div>
                     </div>
                 )}
+            </div>
+
+            <div className="card-glass border-slate-700/50 p-8 flex flex-col gap-6 mt-8">
+                <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-surface border border-slate-700 flex items-center justify-center shrink-0">
+                        <Download className="w-8 h-8 text-blue-400" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-medium text-white">Export Your Data</h3>
+                        <p className="text-sm text-slate-400 mt-1">Download a JSON record of all your data associated with this platform.</p>
+                    </div>
+                    <div className="ml-auto">
+                        <button onClick={handleExport} disabled={exporting} className="btn-secondary whitespace-nowrap">
+                            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Download JSON"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="card-glass border-red-500/30 p-8 flex flex-col gap-6 mt-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-2 h-full bg-red-500/50" />
+
+                <div className="flex items-start gap-4">
+                    <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                        <Trash2 className="w-8 h-8 text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-lg font-medium text-white">Delete Account</h3>
+                        <p className="text-sm text-slate-400 mt-1">Permanently delete your account and remove your active identities. All in-flight requests will be frozen.</p>
+
+                        {confirmDelete ? (
+                            <div className="mt-4 p-4 border border-red-500/30 bg-red-500/10 rounded-lg">
+                                <p className="text-red-200 text-sm mb-4">Are you absolutely sure? This action cannot be reversed.</p>
+                                <div className="flex gap-4">
+                                    <button onClick={handleDelete} disabled={deleting} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors text-sm">
+                                        {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Yes, Delete Account"}
+                                    </button>
+                                    <button onClick={() => setConfirmDelete(false)} disabled={deleting} className="btn-secondary text-sm">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button onClick={() => setConfirmDelete(true)} className="mt-4 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg font-medium transition-colors text-sm">
+                                Delete Account
+                            </button>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );

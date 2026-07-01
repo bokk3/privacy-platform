@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { validate } from "../middleware/validate.js";
 import { requireAuth, requireVerifiedEmail } from "../middleware/auth.js";
+import { requireActiveSubscription } from "../middleware/billing.js";
 import { createRequestSchema, getRequestsQuerySchema } from "../schemas/request.schemas.js";
 import * as requestService from "../services/request.service.js";
 
@@ -27,6 +28,7 @@ requestRouter.get("/", validate(getRequestsQuerySchema, "query"), async (req, re
 requestRouter.post(
     "/",
     requireVerifiedEmail, // Prevent unverified users from spamming requests
+    requireActiveSubscription, // Only paying customers can dispatch
     validate(createRequestSchema),
     async (req, res, next) => {
         try {

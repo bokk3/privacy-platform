@@ -3,68 +3,154 @@ import { logger } from "../lib/logger.js";
 import { transitionRequestStatus } from "./request.service.js";
 import { REQUEST_STATUS } from "@privacy-platform/shared";
 
-/**
- * Handles incoming email reply webhooks. (e.g. Inbound Parse Webhook APIs)
- * Expected minimal generic shape for bounce and text bodies.
- */
-export async function processEmailWebhook(payload) {
-    // Simplistic heuristic to link inbound emails back to a broker interaction.
-    // In a real system, you'd use a tracked reply-to address like "reply+req123@privacy.com"
-    const { from, to, subject, text, isBounce } = payload;
-    logger.info({ from, to, subject }, "Processing incoming email webhook");
+// ---------------------------------------------------------------------------
+// Bounce classification
+// ---------------------------------------------------------------------------
 
-    // Attempt to match broker by their contact email as the sender
+const HARD_BOUNCE_CODES = new Set([
+    "550", "551", "552", "553", "554", // Permanent failures
+]);
+
+/**
+ * Classifies a bounce event into hard or soft categories.
+ * Hard bounces should immediately FAIL the request.
+ * Soft bounces can be retried.
+ */
+function classifyBounce(bounceData) {
+    const code = String(bounceData?.statusCode || bounceData?.reason || "").slice(0, 3);
+    if (HARD_BOUNCE_CODES.has(code)) return "hard";
+    // Default to soft if we can't determine
+    return "soft";
+}
+
+// ---------------------------------------------------------------------------
+// Thread correlation strategies
+// ---------------------------------------------------------------------------
+
+/**
+ * Strategy 1: Match by outbound SMTP Message-ID.
+ * The inbound reply should contain our original Message-ID in the
+ * `In-Reply-To` or `References` headers.
+ */
+async function correlateByMessageId(inReplyTo, references) {
+    const candidates = [
+        ...(inReplyTo ? [inReplyTo] : []),
+        ...(references ? references.split(/\s+/) : []),
+    ].filter(Boolean);
+
+    if (candidates.length === 0) return null;
+
+    return prisma.privacyRequest.findFirst({
+        where: {
+            outboundMessageId: { in: candidates },
+            status: REQUEST_STATUS.WAITING,
+        },
+    });
+}
+
+/**
+ * Strategy 2: Fallback — match by broker contact email + WAITING status.
+ * Less accurate but works when threading headers are stripped.
+ */
+async function correlateByBrokerEmail(fromEmail) {
     const broker = await prisma.broker.findFirst({
-        where: { contactEmail: from },
+        where: { contactEmail: fromEmail },
     });
 
-    if (!broker) {
-        logger.warn({ from }, "Webhook received from unknown broker email");
-        return;
-    }
+    if (!broker) return null;
 
-    // Find the single WAITING request for this broker. This is a simplification; 
-    // complex implementations parse the inbound thread headers for accurate mapping.
-    const activeRequest = await prisma.privacyRequest.findFirst({
+    return prisma.privacyRequest.findFirst({
         where: {
             brokerId: broker.id,
             status: REQUEST_STATUS.WAITING,
         },
         orderBy: { createdAt: "desc" },
     });
+}
 
-    if (!activeRequest) {
-        logger.info({ brokerId: broker.id }, "No active WAITING request found for broker, ignoring webhook");
-        return;
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Processes incoming email webhook events.
+ * Supports both SendGrid and Mailgun-style normalized payloads.
+ *
+ * Threading priority:
+ *   1. SMTP `In-Reply-To` / `References` header → exact match
+ *   2. Sender email → broker contact email → most recent WAITING request
+ */
+export async function processEmailWebhook(payload) {
+    const {
+        from,
+        to,
+        subject,
+        text,
+        isBounce,
+        bounceType,
+        statusCode,
+        inReplyTo,
+        references,
+        messageId,
+    } = payload;
+
+    logger.info({ from, to, subject, messageId }, "Processing incoming email webhook");
+
+    // 1. Attempt thread correlation
+    let request = await correlateByMessageId(inReplyTo, references);
+
+    if (!request) {
+        request = await correlateByBrokerEmail(from);
     }
 
+    if (!request) {
+        logger.warn({ from, messageId }, "Could not correlate webhook to any active request");
+        return { correlated: false };
+    }
+
+    logger.info({ requestId: request.id, from }, "Correlated webhook to request");
+
+    // 2. Route by event type
     if (isBounce) {
-        logger.warn({ requestId: activeRequest.id }, "Email bounce detected");
+        const severity = classifyBounce({ statusCode, reason: bounceType });
+        logger.warn({ requestId: request.id, severity }, "Bounce detected");
 
-        await transitionRequestStatus({
-            requestId: activeRequest.id,
-            newStatus: REQUEST_STATUS.FAILED,
-            actorType: "SYSTEM",
-            note: "Delivery bounced. Invalid contact email.",
-        });
+        if (severity === "hard") {
+            // Hard bounce → permanent failure
+            await transitionRequestStatus({
+                requestId: request.id,
+                newStatus: REQUEST_STATUS.FAILED,
+                actorType: "SYSTEM",
+                note: `Hard bounce (${statusCode || "unknown"}). Broker email is permanently unreachable.`,
+            });
 
-        // Optionally append bounce data
-        await prisma.privacyRequest.update({
-            where: { id: activeRequest.id },
-            data: { lastError: "SMTP Bounce" },
-        });
+            await prisma.privacyRequest.update({
+                where: { id: request.id },
+                data: { lastError: `HARD_BOUNCE: ${statusCode || bounceType || "unknown"}` },
+            });
+        } else {
+            // Soft bounce → retry
+            await transitionRequestStatus({
+                requestId: request.id,
+                newStatus: REQUEST_STATUS.RETRY,
+                actorType: "SYSTEM",
+                note: `Soft bounce (${statusCode || "unknown"}). Will retry delivery.`,
+            });
+        }
 
-        return;
+        return { correlated: true, action: `bounce_${severity}` };
     }
 
-    // If we receive a reply, transition the status to ACTION_REQUIRED or COMPLETED
-    // depending on automation heuristics. For now we will flag it for manual review.
-    logger.info({ requestId: activeRequest.id }, "Reply received from broker");
+    // 3. Reply received — transition to VERIFIED for manual review
+    logger.info({ requestId: request.id }, "Reply received from broker");
 
     await transitionRequestStatus({
-        requestId: activeRequest.id,
-        newStatus: REQUEST_STATUS.ACTION_REQUIRED,
+        requestId: request.id,
+        newStatus: REQUEST_STATUS.VERIFIED,
         actorType: "SYSTEM",
-        note: `Email reply received. Needs review. Preview: ${text?.slice(0, 100) || "none"}`,
+        note: `Email reply received from ${from}. Preview: ${text?.slice(0, 200) || "(empty)"}`,
     });
+
+    return { correlated: true, action: "reply_received" };
 }
+

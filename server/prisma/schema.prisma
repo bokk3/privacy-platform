@@ -47,6 +47,7 @@ model User {
   mfaSecret         String? // encrypted TOTP secret, set only when mfaEnabled
   failedLoginCount  Int       @default(0)
   lockedUntil       DateTime?
+  stripeCustomerId  String?   @unique // Stripe customer ID
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
@@ -59,10 +60,35 @@ model User {
   recurringSchedules    RecurringSchedule[]
   notifications         Notification[]
   webhookSubscriptions  WebhookSubscription[]
+  subscription          Subscription?
   auditLogs             AuditLog[]                @relation("AuditLogActor")
 
   @@index([email])
   @@map("users")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+  UNPAID
+}
+
+model Subscription {
+  id                     String             @id @default(uuid())
+  userId                 String             @unique
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId   String             @unique
+  stripePriceId          String
+  status                 SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart     DateTime
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@map("subscriptions")
 }
 
 model RefreshToken {
@@ -214,6 +240,7 @@ model Broker {
   method                BrokerMethod
   apiSupport            Boolean      @default(false)
   apiConfig             Json? // endpoint, auth type, field mapping — only when apiSupport
+  formMapping           Json? // structured CSS selectors for WEB_FORM automation
   expectedResponseDays  Int          @default(30)
   status                BrokerStatus @default(ACTIVE)
   notes                 String?
@@ -278,6 +305,7 @@ model PrivacyRequest {
   recordsRemovedEstimate  Int?
   retryCount              Int           @default(0)
   maxRetries              Int           @default(3)
+  outboundMessageId       String?       // SMTP Message-ID for thread correlation
   lastError               String?
   screenshotUrl           String? // captured on Playwright failure
   createdAt               DateTime      @default(now())

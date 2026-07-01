@@ -44,6 +44,10 @@ const envSchema = z.object({
 
   CORS_ORIGIN: z.string().min(1),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+
+  STRIPE_SECRET_KEY: z.string().optional().default(""),
+  STRIPE_WEBHOOK_SECRET: z.string().optional().default(""),
+  STRIPE_PRICE_ID: z.string().optional().default(""),
 });
 
 const parsed = envSchema.safeParse(process.env);

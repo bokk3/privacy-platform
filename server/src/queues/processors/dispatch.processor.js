@@ -128,11 +128,146 @@ async function processEmailDispatch(request) {
     if (!success) {
         throw new Error("SMTP transmission failed");
     }
+
+    // Store the outbound message ID for thread correlation
+    if (success.messageId) {
+        await prisma.privacyRequest.update({
+            where: { id: request.id },
+            data: { outboundMessageId: success.messageId },
+        });
+    }
+}
+
+/**
+ * Resolves a data key to an actual value from the request's identity/user data.
+ */
+function resolveDataKey(dataKey, request, customValue) {
+    const identity = request.identity;
+    const user = request.user;
+    const primaryEmail = identity.emails?.[0]?.email || user.email;
+    const primaryPhone = identity.phones?.[0]?.phone || "";
+    const primaryAddress = identity.addresses?.[0] || {};
+
+    const map = {
+        firstName: identity.firstName,
+        lastName: identity.lastName,
+        fullName: `${identity.firstName} ${identity.lastName}`,
+        email: primaryEmail,
+        phone: primaryPhone,
+        addressLine1: primaryAddress.line1 || "",
+        addressLine2: primaryAddress.line2 || "",
+        city: primaryAddress.city || "",
+        region: primaryAddress.region || "",
+        postalCode: primaryAddress.postalCode || "",
+        country: primaryAddress.country || "",
+        birthYear: identity.birthYear ? String(identity.birthYear) : "",
+        custom: customValue || "",
+    };
+
+    return map[dataKey] || "";
+}
+
+/**
+ * Executes a single form field action on the page.
+ */
+async function executeFieldAction(page, field, request) {
+    const value = resolveDataKey(field.dataKey, request, field.customValue);
+    const action = field.action || "fill";
+
+    switch (action) {
+        case "fill":
+            await page.fill(field.selector, value);
+            break;
+        case "select":
+            await page.selectOption(field.selector, value);
+            break;
+        case "check":
+            await page.check(field.selector);
+            break;
+        case "click":
+            await page.click(field.selector);
+            break;
+        default:
+            throw new Error(`Unsupported field action: ${action}`);
+    }
+}
+
+/**
+ * Executes structured form mapping steps (multi-page support).
+ */
+async function executeStructuredMapping(page, formMapping, request) {
+    for (const step of formMapping.steps) {
+        // Fill all fields defined for this step
+        for (const field of step.fields) {
+            await executeFieldAction(page, field, request);
+        }
+
+        // Navigate to next step if defined
+        if (step.navigation) {
+            const nav = step.navigation;
+            await page.click(nav.clickSelector);
+
+            if (nav.waitFor === "navigation") {
+                await page.waitForNavigation({ waitUntil: "networkidle", timeout: 15000 }).catch(() => null);
+            } else if (nav.waitFor === "selector" && nav.waitSelector) {
+                await page.waitForSelector(nav.waitSelector, { timeout: nav.waitTimeoutMs || 10000 });
+            } else if (nav.waitFor === "timeout") {
+                await page.waitForTimeout(nav.waitTimeoutMs || 2000);
+            }
+        }
+    }
+
+    // Final submit
+    const submitBtn = await page.$(formMapping.submitSelector);
+    if (!submitBtn) throw new Error("SUBMIT_BUTTON_NOT_FOUND");
+
+    await Promise.all([
+        page.waitForNavigation({ waitUntil: "networkidle", timeout: 15000 }).catch(() => null),
+        submitBtn.click(),
+    ]);
+
+    // Verify confirmation if selector provided
+    if (formMapping.confirmationSelector) {
+        const confirmed = await page.$(formMapping.confirmationSelector);
+        if (!confirmed) {
+            logger.warn({ requestId: request.id }, "Confirmation element not found after submit");
+        }
+    }
+}
+
+/**
+ * Heuristic fallback for brokers without structured formMapping.
+ * Uses generic CSS selectors to guess at common form field names.
+ */
+async function executeHeuristicFallback(page, request) {
+    const firstName = request.identity.firstName;
+    const lastName = request.identity.lastName;
+    const email = request.user.email;
+
+    const hasFirstNameInput = await page.$("input[name*='first']");
+    if (hasFirstNameInput) await page.fill("input[name*='first']", firstName);
+
+    const hasLastNameInput = await page.$("input[name*='last']");
+    if (hasLastNameInput) await page.fill("input[name*='last']", lastName);
+
+    const hasEmailInput = await page.$("input[type='email'], input[name*='email']");
+    if (hasEmailInput) await page.fill("input[type='email'], input[name*='email']", email);
+
+    const submitButton = await page.$("button[type='submit'], input[type='submit']");
+    if (submitButton) {
+        await Promise.all([
+            page.waitForNavigation({ waitUntil: "networkidle", timeout: 15000 }).catch(() => null),
+            submitButton.click(),
+        ]);
+    } else {
+        throw new Error("COULD_NOT_LOCATE_SUBMIT_BUTTON");
+    }
 }
 
 /**
  * Automates submitting privacy web forms via Playwright.
- * A proof-of-concept interacting with standard HTML structures.
+ * Uses structured formMapping from the broker when available,
+ * otherwise falls back to heuristic generic selectors.
  */
 async function processWebFormDispatch(request) {
     if (!request.broker.optOutUrl && !request.broker.privacyUrl) {
@@ -140,63 +275,46 @@ async function processWebFormDispatch(request) {
     }
 
     const targetUrl = request.broker.optOutUrl || request.broker.privacyUrl;
+    const formMapping = request.broker.formMapping;
     const browser = await launchBrowser();
     const context = await browser.newContext();
     const page = await context.newPage();
-
-    let screenshotUrl = null;
 
     try {
         // 1. Navigate to target
         await page.goto(targetUrl, { waitUntil: "networkidle", timeout: 30000 });
 
-        // 2. Scan for immediate Captchas blocking access
+        // 2. Scan for immediate CAPTCHAs
         if (await detectCaptcha(page)) {
             throw new Error("CAPTCHA_CHALLENGE_BLOCKING");
         }
 
-        // 3. Fill form logic (heuristic examples based on common DOM identifiers)
-        const firstName = request.identity.firstName;
-        const lastName = request.identity.lastName;
-        const email = request.user.email; // Using default account email as proxy
-
-        // Fill known generic attributes (in reality, API configs might define mapping locators)
-        const hasFirstNameInput = await page.$("input[name*='first']");
-        if (hasFirstNameInput) await page.fill("input[name*='first']", firstName);
-
-        const hasLastNameInput = await page.$("input[name*='last']");
-        if (hasLastNameInput) await page.fill("input[name*='last']", lastName);
-
-        const hasEmailInput = await page.$("input[type='email'], input[name*='email']");
-        if (hasEmailInput) await page.fill("input[type='email'], input[name*='email']", email);
-
-        // 4. Try submitting
-        const submitButton = await page.$("button[type='submit'], input[type='submit']");
-        if (submitButton) {
-            await Promise.all([
-                page.waitForNavigation({ waitUntil: "networkidle", timeout: 15000 }).catch(() => null),
-                submitButton.click(),
-            ]);
+        // 3. Fill and submit — structured or heuristic
+        if (formMapping && formMapping.steps && formMapping.steps.length > 0) {
+            logger.info({ requestId: request.id }, "Using structured form mapping");
+            await executeStructuredMapping(page, formMapping, request);
         } else {
-            throw new Error("COULD_NOT_LOCATE_SUBMIT_BUTTON");
+            logger.info({ requestId: request.id }, "No form mapping — using heuristic fallback");
+            await executeHeuristicFallback(page, request);
         }
 
-        // 5. Post-submit Captcha check
+        // 4. Post-submit CAPTCHA check
         if (await detectCaptcha(page)) {
             throw new Error("CAPTCHA_POST_SUBMIT");
         }
 
     } catch (err) {
         // Capture debug screenshot before closing
-        screenshotUrl = await captureScreenshot(page, request.id);
+        const screenshotUrl = await captureScreenshot(page, request.id);
 
-        // Attach screenshot url to the request row
-        await prisma.privacyRequest.update({
-            where: { id: request.id },
-            data: { screenshotUrl },
-        });
+        if (screenshotUrl) {
+            await prisma.privacyRequest.update({
+                where: { id: request.id },
+                data: { screenshotUrl },
+            });
+        }
 
-        throw err; // Bubble the parsed/custom error up for the outer catch block
+        throw err;
     } finally {
         await browser.close();
     }

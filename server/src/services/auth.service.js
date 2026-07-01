@@ -549,6 +549,96 @@ export async function getProfile(userId) {
 }
 
 // ---------------------------------------------------------------------------
+// Compliance & Right-to-Access
+// ---------------------------------------------------------------------------
+
+export async function exportData(userId) {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+            identities: {
+                include: {
+                    aliases: true,
+                    addresses: true,
+                    emails: true,
+                    phones: true,
+                },
+            },
+            privacyRequests: {
+                include: {
+                    broker: { select: { name: true, method: true } },
+                    events: true,
+                },
+            },
+            auditLogs: {
+                orderBy: { createdAt: "desc" }
+            },
+        },
+    });
+
+    if (!user || user.deletedAt) throw new AppError("Account not found.", 404, "NOT_FOUND");
+
+    // Remove sensitive technical boundaries before dropping the json tree
+    delete user.passwordHash;
+    delete user.mfaSecret;
+
+    await auditLog({
+        actorId: userId,
+        actorType: "USER",
+        action: "PRIVACY_DATA_EXPORTED", // Custom action for GDPR trail
+        entityType: "User",
+        entityId: userId,
+        ip: null,
+    });
+
+    return user;
+}
+
+export async function deleteAccount(userId) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.deletedAt) throw new AppError("Account not found.", 404, "NOT_FOUND");
+
+    const scramble = `deleted_${userId.split("-")[0]}_${Date.now()}@deleted.local`;
+
+    await prisma.$transaction([
+        prisma.user.update({
+            where: { id: userId },
+            data: {
+                deletedAt: new Date(),
+                email: scramble,
+                passwordHash: "DELETED",
+                mfaSecret: null,
+                mfaEnabled: false,
+            },
+        }),
+        prisma.identity.updateMany({
+            where: { userId },
+            data: { deletedAt: new Date() },
+        }),
+        prisma.refreshToken.updateMany({
+            where: { userId, revokedAt: null },
+            data: { revokedAt: new Date() },
+        }),
+        // Pause all recurring schedules instantly
+        prisma.recurringSchedule.updateMany({
+            where: { userId, active: true },
+            data: { active: false },
+        })
+    ]);
+
+    await auditLog({
+        actorId: userId,
+        actorType: "USER",
+        action: "USER_DELETED_ACCOUNT",
+        entityType: "User",
+        entityId: userId,
+        ip: null,
+    });
+
+    return { deleted: true };
+}
+
+// ---------------------------------------------------------------------------
 // Sanitize helper
 // ---------------------------------------------------------------------------
 

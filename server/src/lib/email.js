@@ -21,8 +21,8 @@ function getTransporter() {
 
 /**
  * Send an email. Logs on failure but doesn't throw (email delivery should
- * not crash auth flows). Returns true if the message was accepted by the
- * SMTP relay, false otherwise.
+ * not crash auth flows). Returns the SMTP info object (with messageId) on
+ * success or null on failure.
  */
 export async function sendEmail({ to, subject, html, text }) {
     try {
@@ -34,10 +34,10 @@ export async function sendEmail({ to, subject, html, text }) {
             text,
         });
         logger.info({ messageId: info.messageId, to }, "Email sent");
-        return true;
+        return info;
     } catch (err) {
         logger.error({ err, to, subject }, "Failed to send email");
-        return false;
+        return null;
     }
 }
 

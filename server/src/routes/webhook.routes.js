@@ -4,26 +4,45 @@ import { logger } from "../lib/logger.js";
 
 export const webhookRouter = Router();
 
-// Endpoint for receiving generic email webhooks (e.g. from Sendgrid / Mailgun)
+// Endpoint for receiving generic email webhooks (e.g. from SendGrid / Mailgun)
 webhookRouter.post("/email", async (req, res, next) => {
     try {
-        // In production, you would verify webhook hashes here (e.g., Sendgrid Event Webhook signatures).
+        // In production, verify webhook signatures here (e.g., SendGrid Event Webhook HMAC).
 
-        // Convert vendor-specific payloads to a normalized object. 
-        // This example assumes a normalized generic structure received.
-        const { from, to, subject, text, event } = req.body;
-        const isBounce = event === "bounce" || event === "dropped";
+        // Normalize vendor-specific payloads into a standard shape.
+        const {
+            from,
+            to,
+            subject,
+            text,
+            event,
+            // Threading headers
+            in_reply_to,    // SendGrid naming
+            inReplyTo,      // Mailgun naming
+            references,
+            // Bounce metadata
+            bounce_type,
+            status,
+            "message-id": rawMessageId,
+        } = req.body;
 
-        // We send an immediate 200 OK so the email provider doesn't retry
+        const isBounce = event === "bounce" || event === "dropped" || event === "bounced";
+
+        // Immediate 200 so the provider doesn't retry
         res.status(200).send("OK");
 
-        // Process asynchronously so we don't stall the HTTP response
+        // Process asynchronously
         webhookService.processEmailWebhook({
             from,
             to,
             subject,
             text,
             isBounce,
+            bounceType: bounce_type,
+            statusCode: status,
+            inReplyTo: inReplyTo || in_reply_to,
+            references,
+            messageId: rawMessageId,
         }).catch(err => {
             logger.error({ err }, "Error processing inbound webhook asynchronously");
         });
@@ -32,3 +51,4 @@ webhookRouter.post("/email", async (req, res, next) => {
         next(err);
     }
 });
+
