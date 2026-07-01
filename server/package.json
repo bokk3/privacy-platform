@@ -39,8 +39,10 @@
     "pino-pretty": "^11.2.2",
     "playwright": "^1.47.0",
     "rate-limit-redis": "^4.2.0",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^9.0.1",
     "xss": "^1.0.15",
+    "yamljs": "^0.3.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

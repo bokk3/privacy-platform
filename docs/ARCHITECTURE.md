@@ -1,4 +1,4 @@
-# Architecture — Steps 1–6 (Foundation + Auth + Workflow + Automation + Dashboard + Admin View)
+# Architecture — Steps 1–7 (Foundation + Auth + Workflow + Automation + Dashboard + Admin + OpenAPI)
 
 ## System overview
 
@@ -209,6 +209,7 @@ The dashboard is built within the `/client` directory as a lightweight SPA confi
 - **Routing**: `react-router-dom` v6 wraps components with Higher Order Layouts (`AuthLayout` and `AppLayout`) resolving rendering strictly based on JWT payload presences governed by `AuthContext.jsx`.
 - **Pages Added**: Login, Register (w/ MFA UI capabilities), Dashboard Activity Summary, Authentication/Security (Profile), and Privacy Requests (with historical timeline mapping) which hook directly into Step 3 endpoints natively.
 - **Admin Portal (Step 6)**: A logically isolated secondary SPA router tree mapped to `/admin/` leveraging strict RBAC `user.role === 'ADMIN'`. Features custom color theming (Rose Red) to deter context confusion and grants immediate access to System Health metrics natively pulled through Node instead of taxing the ORM heavily.
+- **REST OpenAPI (Step 7)**: Built-in API schema definition using `openapi.yaml` available dynamically through `swagger-ui-express` mounted onto `/api/docs` mapping public integrations cleanly.
 
 ## What's runnable today
 
@@ -254,6 +255,5 @@ The dashboard is built within the `/client` directory as a lightweight SPA confi
 
 ## What's intentionally not yet built (upcoming steps)
 
-1. **Step 7** — Public REST API + OpenAPI docs.
-2. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
+1. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
    Playwright E2E) + GitHub Actions CI + production deployment guide.

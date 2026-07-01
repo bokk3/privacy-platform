@@ -4,6 +4,12 @@ import compression from "compression";
 import pinoHttp from "pino-http";
 import { randomUUID } from "node:crypto";
 
+import helmet from "helmet";
+import cors from "cors";
+import path from "node:path";
+import swaggerUi from "swagger-ui-express";
+import yamljs from "yamljs";
+
 import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
 import {
@@ -21,6 +27,9 @@ import { adminRouter } from "./routes/admin.routes.js";
 
 export function createApp() {
   const app = express();
+
+  // Load OpenAPI Spec
+  const swaggerDocument = yamljs.load(path.join(process.cwd(), "..", "docs", "openapi.yaml"));
 
   // Trust the first proxy hop (nginx) so req.ip / rate limiting see the real
   // client IP instead of the container network address.
@@ -52,6 +61,9 @@ export function createApp() {
   // Versioned API namespace. Subsequent steps mount /api/v1/auth,
   // /api/v1/brokers, /api/v1/requests, /api/v1/admin, etc. here.
   const apiV1 = express.Router();
+
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
   app.use("/api/v1", apiV1);
 
   apiV1.get("/", (req, res) => {

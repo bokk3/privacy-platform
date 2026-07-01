@@ -9,11 +9,11 @@ This is an **original implementation** — architecture, code, copy, and UI
 are all written for this project. It is not affiliated with, and does not
 reuse any code or assets from, any commercial privacy-removal service.
 
-> **Build status: Steps 1–6 of 8 — + Admin System.** See
+> **Build status: Steps 1–7 of 8 — + Swagger OpenAPI.** See
 > [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the full roadmap.
-> Steps 1–6 ship: monorepo scaffolding, Docker infrastructure, the
+> Steps 1–7 ship: monorepo scaffolding, Docker infrastructure, the
 > complete normalized database schema, the full security middleware stack,
-> authentication service, worker workflow engine, complete Broker Automation, modern UI React Dashboard application, and administrative management UIs.
+> authentication service, worker workflow engine, complete Broker Automation, modern UI React Dashboard application, administrative management UIs, and Public APIs mapped through Swagger UI.
 
 ## Monorepo layout
 
@@ -25,12 +25,12 @@ reuse any code or assets from, any commercial privacy-removal service.
     /config        env validation (zod)
     /lib           prisma, redis, logger, encryption, jwt, hash, email, totp, template, playwright
     /middleware    security stack, auth, error handling, validation
-    /routes        Express routers (health, auth, requests, webhook)
+    /routes        Express routers (health, auth, requests, webhook, admin)
     /schemas       Zod validation schemas
-    /services      business logic (auth, audit, request, webhook)
+    /services      business logic (auth, audit, request, webhook, admin)
     /queues        BullMQ queues/workers/processors             (Steps 3-4)
 /packages/shared   constants & enums shared by server + client
-/docs              architecture, ER diagrams, deployment guide
+/docs              architecture, ER diagrams, deployment guide, openapi.yaml (Step 7)
 /scripts           nginx config, deploy/dev helper scripts
 docker-compose.yml Postgres, Redis, server, worker, client, nginx
 ```
@@ -73,7 +73,9 @@ docker compose exec server npm run prisma:seed
 
 ### User Experience Endpoints
 
-The modern React Dashboard exposes the core functionality graphically. Upon booting via `npm run dev`, navigate your browser natively or issue manual payload queries:
+The modern React Dashboard exposes the core functionality graphically. Upon booting via `npm run dev`, navigate your browser natively or issue manual payload queries.
+
+Alternatively, visit the developer platform at `http://localhost:4000/api/docs` to visualize the OpenAPI parameters natively through Swagger.
 
 > `client`, `worker`, and `nginx` services are defined in
 > `docker-compose.yml` for the target architecture but their application
@@ -90,7 +92,6 @@ The modern React Dashboard exposes the core functionality graphically. Upon boot
 4. **Everything is auditable.** Every state change and auth action is
    recorded from day one.
 
-## Next step
+## Next steps
 
-**Step 6 — Admin dashboard:** user/broker/template/log management, system health view.
-
+**Step 8 — Testing Pipeline:** GitHub Action CI, E2E tests via Vitest & Playwright.

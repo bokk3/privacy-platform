@@ -1,0 +1,113 @@
+openapi: 3.0.3
+info:
+  title: Incognito Privacy Platform API
+  description: Public REST API for interacting with the Incognito Privacy request engine.
+  version: 1.0.0
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Development Server
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '201':
+          description: User created
+  /auth/login:
+    post:
+      summary: Authenticate a user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Standard login response mapping JWT payload.
+  /requests:
+    get:
+      summary: List privacy requests
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      responses:
+        '200':
+          description: A paginated list of privacy requests.
+    post:
+      summary: Create a new privacy request directly.
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - brokerId
+                - identityOverrides
+              properties:
+                brokerId:
+                  type: string
+                identityOverrides:
+                  type: object
+      responses:
+        '201':
+          description: Request pipeline created.
+                 
+  /requests/{id}/timeline:
+    get:
+      summary: Get timeline audit for a specific request.
+      security:
+        - bearerAuth: []
+      tags:
+        - Requests
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Historical event status timeline.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
