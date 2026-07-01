@@ -1,0 +1,398 @@
+// ---------------------------------------------------------------------------
+// Privacy Platform — Prisma schema
+//
+// Design notes:
+// - PII (names, addresses, emails, phones) lives on child tables under
+//   `Identity` rather than flat columns on `User`, because a single user may
+//   have MULTIPLE identities (e.g. maiden name, previous legal name) that
+//   need to be searched for and removed independently across brokers.
+// - Every mutation-worthy entity has `createdAt`/`updatedAt`. Soft deletes
+//   are used for User and Identity (via `deletedAt`) so audit history and
+//   in-flight broker requests remain referentially valid after account
+//   closure; Broker/Request rows are never hard-deleted for the same reason.
+// - `AuditLog` is intentionally denormalized (stores actorType + snapshot
+//   metadata as JSON) so it remains readable even if the referenced actor
+//   or entity is later deleted.
+// - Sensitive free-text PII fields (address lines, phone, birth year) are
+//   application-level encrypted (AES-256-GCM) before being written to the
+//   `String` columns below; Prisma sees ciphertext, not plaintext.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth & Users
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPPORT
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String
+  role              UserRole  @default(USER)
+  emailVerifiedAt   DateTime?
+  mfaEnabled        Boolean   @default(false)
+  mfaSecret         String? // encrypted TOTP secret, set only when mfaEnabled
+  failedLoginCount  Int       @default(0)
+  lockedUntil       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  identities            Identity[]
+  refreshTokens         RefreshToken[]
+  emailVerificationCode EmailVerificationToken[]
+  passwordResetTokens   PasswordResetToken[]
+  privacyRequests       PrivacyRequest[]
+  recurringSchedules    RecurringSchedule[]
+  notifications         Notification[]
+  webhookSubscriptions  WebhookSubscription[]
+  auditLogs             AuditLog[]                @relation("AuditLogActor")
+
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique // sha256 of the raw refresh token; raw value never stored
+  userAgent  String?
+  ip         String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & PII (supports multiple identities per user)
+// ---------------------------------------------------------------------------
+
+model Identity {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label      String // e.g. "Primary", "Maiden name", "Before 2015 move"
+  firstName  String // encrypted at application layer
+  lastName   String // encrypted at application layer
+  birthYear  Int?
+  isPrimary  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  aliases   IdentityAlias[]
+  addresses IdentityAddress[]
+  emails    IdentityEmail[]
+  phones    IdentityPhone[]
+  requests  PrivacyRequest[]
+  schedules RecurringSchedule[]
+
+  @@index([userId])
+  @@map("identities")
+}
+
+model IdentityAlias {
+  id         String   @id @default(uuid())
+  identityId String
+  identity   Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  fullName   String // encrypted
+  createdAt  DateTime @default(now())
+
+  @@index([identityId])
+  @@map("identity_aliases")
+}
+
+model IdentityAddress {
+  id         String   @id @default(uuid())
+  identityId String
+  identity   Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  line1      String // encrypted
+  line2      String? // encrypted
+  city       String // encrypted
+  region     String?
+  postalCode String // encrypted
+  country    String
+  isCurrent  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([identityId])
+  @@map("identity_addresses")
+}
+
+model IdentityEmail {
+  id         String   @id @default(uuid())
+  identityId String
+  identity   Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  email      String // encrypted
+  createdAt  DateTime @default(now())
+
+  @@index([identityId])
+  @@map("identity_emails")
+}
+
+model IdentityPhone {
+  id         String   @id @default(uuid())
+  identityId String
+  identity   Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  phone      String // encrypted
+  createdAt  DateTime @default(now())
+
+  @@index([identityId])
+  @@map("identity_phones")
+}
+
+// ---------------------------------------------------------------------------
+// Data Broker Directory
+// ---------------------------------------------------------------------------
+
+enum BrokerMethod {
+  EMAIL
+  WEB_FORM
+  API
+  CSV_EXPORT
+  CUSTOM
+}
+
+enum BrokerStatus {
+  ACTIVE
+  UNRESPONSIVE
+  DISABLED
+  UNDER_REVIEW
+}
+
+model Broker {
+  id                    String       @id @default(uuid())
+  name                  String       @unique
+  website               String
+  contactEmail          String?
+  privacyUrl            String?
+  optOutUrl             String?
+  method                BrokerMethod
+  apiSupport            Boolean      @default(false)
+  apiConfig             Json? // endpoint, auth type, field mapping — only when apiSupport
+  expectedResponseDays  Int          @default(30)
+  status                BrokerStatus @default(ACTIVE)
+  notes                 String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  templates RequestTemplate[]
+  requests  PrivacyRequest[]
+
+  @@index([status])
+  @@map("brokers")
+}
+
+model RequestTemplate {
+  id               String       @id @default(uuid())
+  brokerId         String?
+  broker           Broker?      @relation(fields: [brokerId], references: [id], onDelete: Cascade)
+  name             String
+  channel          BrokerMethod
+  subjectTemplate  String? // Handlebars source, used for EMAIL channel
+  bodyTemplate     String // Handlebars source
+  isDefaultGeneric Boolean      @default(false) // fallback template when broker has none
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([brokerId])
+  @@map("request_templates")
+}
+
+// ---------------------------------------------------------------------------
+// Privacy Request Workflow
+// ---------------------------------------------------------------------------
+
+enum RequestStatus {
+  PENDING
+  SENT
+  WAITING
+  VERIFIED
+  COMPLETED
+  REJECTED
+  RETRY
+  FAILED
+  ESCALATED
+}
+
+model PrivacyRequest {
+  id                      String        @id @default(uuid())
+  userId                  String
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  identityId              String
+  identity                Identity      @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  brokerId                String
+  broker                  Broker        @relation(fields: [brokerId], references: [id])
+  status                  RequestStatus @default(PENDING)
+  method                  BrokerMethod
+  templateId              String?
+  recurringScheduleId     String?
+  recurringSchedule       RecurringSchedule? @relation(fields: [recurringScheduleId], references: [id])
+  sentAt                  DateTime?
+  dueAt                   DateTime? // sentAt + broker.expectedResponseDays
+  completedAt             DateTime?
+  recordsRemovedEstimate  Int?
+  retryCount              Int           @default(0)
+  maxRetries              Int           @default(3)
+  lastError               String?
+  screenshotUrl           String? // captured on Playwright failure
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  events RequestEvent[]
+
+  @@index([userId])
+  @@index([brokerId])
+  @@index([status])
+  @@index([dueAt])
+  @@map("privacy_requests")
+}
+
+enum ActorType {
+  SYSTEM
+  USER
+  ADMIN
+}
+
+model RequestEvent {
+  id         String         @id @default(uuid())
+  requestId  String
+  request    PrivacyRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  fromStatus RequestStatus?
+  toStatus   RequestStatus
+  note       String?
+  actorType  ActorType
+  actorId    String?
+  createdAt  DateTime       @default(now())
+
+  @@index([requestId])
+  @@map("request_events")
+}
+
+// ---------------------------------------------------------------------------
+// Recurring Removals
+// ---------------------------------------------------------------------------
+
+model RecurringSchedule {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  identityId   String
+  identity     Identity  @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  intervalDays Int       @default(90)
+  nextRunAt    DateTime
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  requests PrivacyRequest[]
+
+  @@index([userId])
+  @@index([nextRunAt])
+  @@map("recurring_schedules")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+  WEBHOOK
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel   NotificationChannel
+  title     String
+  body      String
+  read      Boolean             @default(false)
+  metadata  Json?
+  createdAt DateTime            @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model WebhookSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  secret    String // used to sign payloads (HMAC-SHA256)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("webhook_subscriptions")
+}
+
+// ---------------------------------------------------------------------------
+// Audit Log (append-only, system-wide)
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  actorId     String?
+  actor       User?     @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorType   ActorType
+  action      String
+  entityType  String
+  entityId    String?
+  ip          String?
+  requestId   String? // correlation id from pino-http, ties log lines to this action
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

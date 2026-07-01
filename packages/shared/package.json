@@ -1,0 +1,11 @@
+{
+  "name": "@privacy-platform/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "description": "Shared constants and pure helper functions used by both server and client"
+}
