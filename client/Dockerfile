@@ -2,23 +2,31 @@
 
 # ---- base ------------------------------------------------------------
 FROM node:20-bookworm-slim AS base
-WORKDIR /app/client
+WORKDIR /app
 ENV NODE_ENV=development
 
 # ---- development -------------------------------------------------------
 FROM base AS development
-COPY package*.json ./
+COPY package.json package-lock.json ./
+COPY server/package.json ./server/
+COPY client/package.json ./client/
+COPY packages/shared/package.json ./packages/shared/
 RUN npm install
 COPY . .
+WORKDIR /app/client
 EXPOSE 5173
 CMD ["npm", "run", "dev", "--", "--host"]
 
 # ---- build (static SPA for production) ---------------------------------
 FROM base AS build
 ENV NODE_ENV=production
-COPY package*.json ./
+COPY package.json package-lock.json ./
+COPY server/package.json ./server/
+COPY client/package.json ./client/
+COPY packages/shared/package.json ./packages/shared/
 RUN npm ci
 COPY . .
+WORKDIR /app/client
 RUN npm run build
 
 # ---- production (Nginx serves the static SPA) --------------------------

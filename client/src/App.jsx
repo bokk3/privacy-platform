@@ -8,6 +8,7 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Requests from './pages/Requests.jsx';
 import Profile from './pages/Profile.jsx';
+import Billing from './pages/Billing.jsx';
 import AppLayout from './components/AppLayout.jsx';
 import AuthLayout from './components/AuthLayout.jsx';
 import AdminLayout from './components/AdminLayout.jsx';
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="requests" element={<Requests />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="billing" element={<Billing />} />
           </Route>
 
           {/* Secure Admin Routes */}

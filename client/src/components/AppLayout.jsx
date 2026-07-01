@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { DefaultAvatar } from './Avatar.jsx';
-import { LayoutDashboard, LogOut, ShieldAlert, FileText, Bell, Settings } from 'lucide-react';
+import { LayoutDashboard, LogOut, ShieldAlert, FileText, Bell, Settings, CreditCard } from 'lucide-react';
 
 export default function AppLayout() {
     const { user, logout } = useAuth();
@@ -36,6 +36,10 @@ export default function AppLayout() {
                     <NavLink to="/requests" className={navClass}>
                         <FileText className="w-5 h-5" />
                         Privacy Requests
+                    </NavLink>
+                    <NavLink to="/billing" className={navClass}>
+                        <CreditCard className="w-5 h-5" />
+                        Subscription & Billing
                     </NavLink>
                     <NavLink to="/profile" className={navClass}>
                         <Settings className="w-5 h-5" />

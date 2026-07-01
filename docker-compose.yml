@@ -36,8 +36,8 @@ services:
 
   server:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/Dockerfile
       target: ${BUILD_TARGET:-development}
     container_name: privacy_server
     restart: unless-stopped
@@ -61,8 +61,8 @@ services:
 
   worker:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/Dockerfile
       target: ${BUILD_TARGET:-development}
     container_name: privacy_worker
     restart: unless-stopped
@@ -84,8 +84,8 @@ services:
 
   client:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: client/Dockerfile
       target: ${BUILD_TARGET:-development}
     container_name: privacy_client
     restart: unless-stopped
