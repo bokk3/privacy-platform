@@ -30,7 +30,11 @@ reuse any code or assets from, any commercial privacy-removal service.
     /services      business logic (auth, audit, request, webhook, admin)
     /queues        BullMQ queues/workers/processors             (Steps 3-4)
 /packages/shared   constants & enums shared by server + client
-/docs              architecture, ER diagrams, deployment guide, openapi.yaml (Step 7)
+/docs
+  ARCHITECTURE.md  System overview and roadmap
+  DEPLOYMENT.md    Production scaling details
+  DEVELOPMENT.md   Local contribution guidelines
+  openapi.yaml     Public API specification (Step 7)
 /scripts           nginx config, deploy/dev helper scripts
 docker-compose.yml Postgres, Redis, server, worker, client, nginx
 ```
