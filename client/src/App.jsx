@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Requests from './pages/Requests.jsx';
+import Identities from './pages/Identities.jsx';
 import Profile from './pages/Profile.jsx';
 import Billing from './pages/Billing.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
@@ -67,6 +68,7 @@ export default function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="requests" element={<Requests />} />
+            <Route path="identities" element={<Identities />} />
             <Route path="profile" element={<Profile />} />
             <Route path="billing" element={<Billing />} />
           </Route>

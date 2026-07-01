@@ -25,6 +25,7 @@ import { requestRouter } from "./routes/request.routes.js";
 import { webhookRouter } from "./routes/webhook.routes.js";
 import { adminRouter } from "./routes/admin.routes.js";
 import { billingRouter } from "./routes/billing.routes.js";
+import { identityRouter } from "./routes/identity.routes.js";
 
 export function createApp() {
   const app = express();
@@ -84,6 +85,7 @@ export function createApp() {
   });
 
   apiV1.use("/auth", authRouter);
+  apiV1.use("/identities", identityRouter);
   apiV1.use("/requests", requestRouter);
   apiV1.use("/webhooks", webhookRouter);
   apiV1.use("/billing", billingRouter);

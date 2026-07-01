@@ -2,7 +2,8 @@ import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { DefaultAvatar } from './Avatar.jsx';
-import { LayoutDashboard, LogOut, ShieldAlert, FileText, Bell, Settings, CreditCard } from 'lucide-react';
+import Logo from './Logo.jsx';
+import { LayoutDashboard, LogOut, ShieldAlert, FileText, Settings, CreditCard, UserCircle } from 'lucide-react';
 
 export default function AppLayout() {
     const { user, logout } = useAuth();
@@ -23,15 +24,18 @@ export default function AppLayout() {
         <div className="min-h-screen bg-background flex text-slate-200">
             {/* Sidebar */}
             <aside className="w-64 border-r border-slate-800 bg-surface/50 flex flex-col hidden md:flex">
-                <div className="h-16 flex items-center px-6 border-b border-slate-800">
-                    <ShieldAlert className="w-6 h-6 text-brand-500 mr-3" />
-                    <span className="font-bold tracking-wide text-white">Incognito</span>
+                <div className="h-16 flex items-center px-4 border-b border-slate-800">
+                    <Logo className="scale-90 origin-left" />
                 </div>
 
                 <nav className="flex-1 px-4 py-6 space-y-2">
                     <NavLink to="/dashboard" className={navClass}>
                         <LayoutDashboard className="w-5 h-5" />
                         Dashboard
+                    </NavLink>
+                    <NavLink to="/identities" className={navClass}>
+                        <UserCircle className="w-5 h-5" />
+                        Digital Identities
                     </NavLink>
                     <NavLink to="/requests" className={navClass}>
                         <FileText className="w-5 h-5" />

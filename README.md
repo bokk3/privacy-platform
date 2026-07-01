@@ -1,62 +1,60 @@
-<p align="center">
-  <img src="https://img.icons8.com/color/144/000000/anonymous-mask.png" alt="Incognito Logo" width="100"/>
-</p>
+# Opaca Engine
 
-# Incognito Privacy Platform
-
-**Incognito** is a fully open-source, heavily automated privacy rights management platform. It allows individuals to take back control of their digital footprint by programmatically issuing opt-out and deletion requests against data brokers across the web.
-
-Built on robust state machines and dynamic Headless web automation, Incognito securely encrypts your identity, manages automated browser workflows navigating CAPTCHAs, digests email responses automatically, and tracks compliance timelines on a beautifully designed visual dashboard.
-
----
+Opaca Engine is an open-source, production-ready clone of Incogni / DeleteMe. It automates the extraction and deletion of Personal Identifiable Information (PII) from the internet's largest and most opaque data brokers.
 
 ## 🚀 Features
 
-- **Automated Workflows**: Playwright explicitly connects to Web Forms, automatically mimicking human interactions securely to scrub your identity seamlessly from the backend.
-- **Robust Email Webhooks**: Ingests bounce metrics and human responses via SendGrid / Mailgun HTTP webhooks to dynamically step the unified State Machine across pipeline tracking endpoints.
-- **Extremely Secure**: Sensitive Personally Identifiable Information (PII) is encrypted at rest using AES-256-GCM. Auth sessions leverage granular JWTs and explicit multi-factor TOTP authentications seamlessly integrated out of the box.
-- **Beautiful Dashboards**: Executive-layered summaries via a sleek, modern React 19 Frontend built heavily on custom responsive Tailwind CSS theming. Admin "God Views" uniquely tinted to prevent cross-contamination.
-- **Strict Role-Based APIs**: Node.js backend guarded rigorously by validation middlewares alongside detailed Audit Log implementations.
-- **OpenAPI Compliant**: Native Swagger-UI exposing programmatic endpoints effortlessly at `/api/docs`.
+- **Automated Broker Scrubbing:** Connects identity matrices to BullMQ worker daemons running headless Playwright browsers to automate CCPA/GDPR compliance forms.
+- **Subscription Billing:** Natively integrated with Stripe Checkout and Stripe Webhooks to gate workflows behind active recurring subscriptions.
+- **Data Profiles (Identities):** Highly encrypted backend schemas cleanly associate real-world targets (names, ghost emails, fake phones) to orchestrated broker dispatches.
+- **Monorepo Architecture:** Seamlessly isolated frontend React Client and backend Express/Prisma Server using NPM Workspaces.
+- **Cron Daemons:** Runs resilient daily background sweeps automatically bridging expired API requests to broker portals.
+- **Role-Based Access (RBAC):** Gated `/admin` dashboards isolating broker configuration logic from standard user portals.
 
-## 📦 Architecture
+## 🛠 Tech Stack
 
-This represents a Node.js unified Monorepo spanning strict boundaries using npm workspaces. 
+- **Frontend:** React 18, Vite, Tailwind CSS, Lucide Icons, React Router
+- **Backend:** Node.js, Express, Prisma ORM (Postgres), Zod
+- **Automation Engine:** BullMQ (Redis), Playwright (Chromium)
+- **Email Infrastructure:** Nodemailer (SMTP Webhook parsing)
+- **Containerization:** Docker Compose (Bridge Networking)
 
-```
-/client            React 19 + Vite + Tailwind dashboard SPA
-/server            Express API + BullMQ Queues + Redis Workers
-  /prisma          Schema definitions, normalized migrations
-/packages/shared   Unified application schemas, state maps, and enums
-/docs              Deployment & Local Dev manuals alongside OpenAPI specs
-```
+---
 
-## ⚡ Deployment & Local Dev
+## ⚡ Quick Start (Development)
 
-Please consult the `/docs` repository to spin up or contribute securely.
+Ensure you have Docker and NodeJS (>= 20.x) installed locally.
 
-- [Deployment Guide (Live Servers)](./docs/DEPLOYMENT.md)
-- [Local Developer Setup](./docs/DEVELOPMENT.md)
-- [System Technical Architecture](./docs/ARCHITECTURE.md)
-
-### Quick Start (Local)
-
-1. Clone and map dependencies: `npm install`
-2. Prep environment: `cp .env.example .env` (Set secure keys)
-3. Boot databases: `docker compose up -d postgres redis`
-4. Spin applications: `npm run dev`
-
-## 🛠 Testing
-
-Incognito asserts rigorous backend logic via `Vitest` and ensures end-to-end frontend safety using `Playwright`. CI automatically asserts code boundaries on PRs utilizing GitHub Actions against sandboxed Postgres containers natively.
-
+**1. Clone the Monorepo**
 ```bash
-# Run Backend API Integrations
-npm run test --workspace=server
-
-# Run End-to-End Frontend Workflows
-npx playwright test --workspace=client
+git clone https://github.com/your-org/opaca-engine.git
+cd opaca-engine
+npm install
 ```
 
-## ⚖️ License
-Incognito is licensed under the MIT License.
+**2. Configure Environment Variables**
+Copy the default environment template and populate it with your local configurations (or Stripe secrets).
+```bash
+cp .env.example .env
+```
+
+**3. Launch the Stack**
+Opaca Engine uses Docker Compose to orchestrate Postgres, Redis, the Express Server, and the Vite Frontend locally.
+```bash
+docker-compose up --build
+```
+*Wait for Prisma to generate clients and seed the database.*
+
+**4. Accessing the Platform**
+- **Public React UI:** [http://localhost:5173/login](http://localhost:5173/login)
+- **Admin Dashboard:** Access via the seeded root account `admin@incognito.local` / `Admin123!` at [http://localhost:5173/admin](http://localhost:5173/admin)
+- **API Swagger Docs:** [http://localhost:4000/api/docs](http://localhost:4000/api/docs)
+
+---
+
+## 📖 Extended Documentation
+For a deep dive into the underlying architecture, data privacy mechanics, or adding new Playwright broker form-fills, please refer to the documents below:
+
+- [System Architecture (ARCHITECTURE.md)](docs/ARCHITECTURE.md)
+- [Broker Integration Guidelines](docs/BROKERS.md)
+- [Stripe Monetization Setup](docs/BILLING.md)
