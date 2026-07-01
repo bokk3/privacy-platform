@@ -14,6 +14,7 @@ import {
 } from "./middleware/security.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { healthRouter } from "./routes/health.routes.js";
+import { authRouter } from "./routes/auth.routes.js";
 
 export function createApp() {
   const app = express();
@@ -57,6 +58,8 @@ export function createApp() {
       version: "v1",
     });
   });
+
+  apiV1.use("/auth", authRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -1,4 +1,4 @@
-# Architecture — Step 1 (Foundation, revised)
+# Architecture — Steps 1–2 (Foundation + Auth)
 
 ## System overview
 
@@ -106,8 +106,54 @@ a buggy retry job.
 | Config drift | zod-validated env schema (incl. Argon2 tuning), fail-fast at startup | `config/env.js` |
 
 Authentication (JWT access/refresh, Argon2 hashing, MFA, session
-management, CSRF token issuance flow) is the subject of **Step 2** and
-builds directly on top of this foundation.
+management, CSRF token issuance flow) is implemented in **Step 2**.
+
+## Authentication architecture (Step 2)
+
+### Token strategy
+
+- **Access token**: Short-lived HS256 JWT (default 15 min). Contains
+  `sub` (userId), `role`, and `emailVerified`. Sent as `Authorization:
+  Bearer <token>`. Stateless — never stored server-side.
+- **Refresh token**: Opaque 48-byte random string. Only the SHA-256 hash
+  is stored in `refresh_tokens`. Sent in request body to `/auth/refresh`.
+  Default lifetime 30d.
+- **Rotation with replay detection**: Every refresh creates a new token
+  and revokes the old one. If a revoked token is presented, all of that
+  user’s refresh tokens are revoked — this detects token theft.
+
+### MFA flow
+
+```
+POST /auth/mfa/setup    → returns TOTP secret + otpauth URL
+POST /auth/mfa/confirm  → user proves they saved secret → MFA enabled
+POST /auth/login         → if MFA enabled, returns { mfaRequired, mfaChallengeToken }
+POST /auth/login/mfa     → supply challengeToken + TOTP code → tokens issued
+POST /auth/mfa/disable   → requires valid TOTP code to disable
+```
+
+### Auth middleware stack
+
+- `requireAuth` — verifies JWT, sets `req.user`
+- `requireVerifiedEmail` — blocks unverified users from protected routes
+- `requireRole(...roles)` — role-based access control
+
+### Auth files
+
+```
+server/src/
+  lib/hash.js         Argon2id password hashing
+  lib/jwt.js          JWT sign/verify, refresh token generation, duration parser
+  lib/email.js        Nodemailer with verification + password reset templates
+  lib/totp.js         TOTP generate/verify with encrypted secret storage
+  services/
+    audit.service.js  Fire-and-forget audit logger
+    auth.service.js   Registration, login, MFA, email verify, password reset,
+                      token rotation, logout, profile
+  middleware/auth.js   requireAuth, requireVerifiedEmail, requireRole
+  schemas/auth.schemas.js  Zod validation for all auth endpoints
+  routes/auth.routes.js    18 Express route handlers mounted at /api/v1/auth
+```
 
 ## What's runnable today
 
@@ -116,8 +162,21 @@ builds directly on top of this foundation.
   - `GET /health/live`
   - `GET /health/ready`
   - `GET /api/v1/`
-- Prisma schema is complete for the domain modeled so far and ready for
-  `prisma migrate dev` once Step 2 adds the auth routes that use it.
+  - `POST /api/v1/auth/register`
+  - `POST /api/v1/auth/login`
+  - `POST /api/v1/auth/login/mfa`
+  - `POST /api/v1/auth/verify-email`
+  - `POST /api/v1/auth/resend-verification`
+  - `POST /api/v1/auth/forgot-password`
+  - `POST /api/v1/auth/reset-password`
+  - `POST /api/v1/auth/refresh`
+  - `POST /api/v1/auth/logout`
+  - `POST /api/v1/auth/logout-all`
+  - `POST /api/v1/auth/mfa/setup`
+  - `POST /api/v1/auth/mfa/confirm`
+  - `POST /api/v1/auth/mfa/disable`
+  - `GET  /api/v1/auth/me`
+- Prisma schema is complete and ready for `prisma migrate dev`.
 
 ### Foundation fixes applied
 
@@ -135,18 +194,15 @@ builds directly on top of this foundation.
 
 ## What's intentionally not yet built (upcoming steps)
 
-1. **Step 2** — Auth service: register/login/verify-email/forgot-reset
-   password/MFA/refresh tokens, wired to the `User`/`RefreshToken`/
-   `*Token` tables already defined.
-2. **Step 3** — Request & workflow engine: BullMQ queues, state-machine
+1. **Step 3** — Request & workflow engine: BullMQ queues, state-machine
    enforcement, Handlebars template rendering, retry/escalation logic.
-3. **Step 4** — Broker automation: Playwright web-form submission, email
+2. **Step 4** — Broker automation: Playwright web-form submission, email
    sending via Nodemailer, bounce/reply detection, CAPTCHA detection +
    screenshot capture on failure.
-4. **Step 5** — React dashboard: stats, timeline/graphs, identity
+3. **Step 5** — React dashboard: stats, timeline/graphs, identity
    management UI, notifications.
-5. **Step 6** — Admin dashboard: user/broker/template/log management,
+4. **Step 6** — Admin dashboard: user/broker/template/log management,
    system health view.
-6. **Step 7** — Public REST API + OpenAPI docs.
-7. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
+5. **Step 7** — Public REST API + OpenAPI docs.
+6. **Step 8** — Test suites (Vitest unit/integration, Supertest API,
    Playwright E2E) + GitHub Actions CI + production deployment guide.
